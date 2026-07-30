@@ -629,8 +629,28 @@
     gap: 10px;
     background: var(--surface-2);
     border-radius: 14px;
-    padding: 9px 10px 9px 13px;
+    padding: 9px 10px 9px 6px;
+    transition: transform .16s ease;
+    position: relative;
   }
+  .ligne-cat.glisse {
+    transition: none;
+    z-index: 5;
+    box-shadow: var(--ombre);
+    background: var(--surface);
+  }
+
+  .poignee {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 26px; height: 30px;
+    color: var(--texte-doux);
+    opacity: .5;
+    cursor: grab;
+    touch-action: none;
+  }
+  .poignee:active { cursor: grabbing; }
   .ligne-cat .rond {
     width: 14px; height: 14px;
     border-radius: 50%;
@@ -837,7 +857,7 @@
   <aside class="panneau">
     <header class="entete">
       <img class="logo" src="logo.png" alt="Dévoreur Explorer">
-      <span class="version" id="version">v11</span>
+      <span class="version" id="version">v12</span>
 
     </header>
 
@@ -1082,6 +1102,14 @@
 
       var ligne = document.createElement('div');
       ligne.className = 'ligne-cat';
+      ligne.dataset.index = i;
+
+      var poignee = document.createElement('span');
+      poignee.className = 'poignee';
+      poignee.setAttribute('aria-label', 'Déplacer ' + c.nom);
+      poignee.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 8h16M4 16h16"/></svg>';
+      poignee.addEventListener('pointerdown', function (e) { debutGlisse(e, ligne); });
+      ligne.appendChild(poignee);
 
       var rond = document.createElement('span');
       rond.className = 'rond';
@@ -1109,6 +1137,55 @@
 
       zone.appendChild(ligne);
     });
+  }
+
+  function debutGlisse(e, ligne) {
+    e.preventDefault();
+    var zone = document.getElementById('liste-cats');
+    var lignes = Array.prototype.slice.call(zone.children);
+    var depart = lignes.indexOf(ligne);
+    var hauteur = ligne.offsetHeight + 6;
+    var y0 = e.clientY;
+    var cible = depart;
+
+    ligne.classList.add('glisse');
+    ligne.setPointerCapture(e.pointerId);
+
+    function bouger(ev) {
+      var d = ev.clientY - y0;
+      ligne.style.transform = 'translateY(' + d + 'px) scale(1.02)';
+
+      cible = Math.max(0, Math.min(lignes.length - 1, depart + Math.round(d / hauteur)));
+
+      lignes.forEach(function (autre, j) {
+        if (j === depart) return;
+        var dec = 0;
+        if (depart < cible && j > depart && j <= cible) dec = -hauteur;
+        else if (cible < depart && j >= cible && j < depart) dec = hauteur;
+        autre.style.transform = dec ? 'translateY(' + dec + 'px)' : '';
+      });
+    }
+
+    function lacher() {
+      ligne.removeEventListener('pointermove', bouger);
+      ligne.removeEventListener('pointerup', lacher);
+      ligne.removeEventListener('pointercancel', lacher);
+
+      lignes.forEach(function (a) { a.style.transform = ''; });
+      ligne.classList.remove('glisse');
+
+      if (cible !== depart) {
+        var c = CATEGORIES.splice(depart, 1)[0];
+        CATEGORIES.splice(cible, 0, c);
+        enregistrerCats();
+        rafraichir();
+      }
+      dessinerCats();
+    }
+
+    ligne.addEventListener('pointermove', bouger);
+    ligne.addEventListener('pointerup', lacher);
+    ligne.addEventListener('pointercancel', lacher);
   }
 
   function retirerCat(i) {
@@ -1456,10 +1533,12 @@
     }
 
     villes.forEach(function (v, i) {
+      var marque = v.dep || (v.groupe === 'IDF' ? 'IDF' : v.groupe);
+
       var b = document.createElement('button');
       b.className = 'ville';
       b.type = 'button';
-      b.appendChild(document.createTextNode(v.nom));
+      b.appendChild(document.createTextNode(v.nom + (marque ? ' (' + marque + ')' : '')));
 
       var x = document.createElement('span');
       x.className = 'croix';
@@ -1520,6 +1599,7 @@
           lat: f.geometry.coordinates[1],
           lng: f.geometry.coordinates[0],
           zoom: 11,
+          dep: departement(f.properties.postcode),
           groupe: groupe(departement(f.properties.postcode))
         };
 
@@ -1531,7 +1611,10 @@
           .then(function (r) { return r.json(); })
           .then(function (rev) {
             var pf = (rev.features || [])[0];
-            if (pf) v.groupe = groupe(departement(pf.properties.postcode));
+            if (pf) {
+              v.dep = departement(pf.properties.postcode);
+              v.groupe = groupe(v.dep);
+            }
             return v;
           })
           .catch(function () { return v; });
@@ -1613,7 +1696,7 @@
     }
     document.getElementById('feuille-entete').innerHTML =
       echapper(titre) + '<span class="nombre">' + n + (n > 1 ? ' adresses' : ' adresse') + '</span>';
-    document.getElementById('version').textContent = 'v11';
+    document.getElementById('version').textContent = 'v12';
   }
 
   /* ---------------------------------------------------------------
