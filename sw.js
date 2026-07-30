@@ -2,7 +2,7 @@
    Change le numéro de version ci-dessous après chaque modification
    de l'application, pour forcer la mise à jour sur ton téléphone. */
 
-var VERSION = 'tables-v3';
+var VERSION = 'tables-v5';
 
 var COQUILLE = [
   './',
@@ -11,9 +11,10 @@ var COQUILLE = [
   './icone-192.png',
   './icone-512.png',
   './icone-180.png',
+  './logo.png',
   'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css',
   'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js',
-  'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap'
+  'https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700&display=swap'
 ];
 
 self.addEventListener('install', function (e) {

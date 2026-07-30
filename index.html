@@ -14,7 +14,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
 
 <style>
   :root {
@@ -32,9 +32,9 @@
     --danger:      #C62A5E;
     --ombre:       0 10px 30px rgba(42,17,69,.15);
 
-    --display: 'Space Grotesk', system-ui, sans-serif;
-    --label:   'Space Grotesk', system-ui, sans-serif;
-    --body:    'Inter', system-ui, -apple-system, sans-serif;
+    --display: 'Fredoka', system-ui, sans-serif;
+    --label:   'Fredoka', system-ui, sans-serif;
+    --body:    'Nunito', system-ui, -apple-system, sans-serif;
   }
 
   [data-theme="sombre"] {
@@ -101,33 +101,22 @@
     flex: none;
   }
 
-  .enseigne {
-    font-family: var(--display);
-    font-size: 25px;
-    font-weight: 700;
-    letter-spacing: .04em;
-    margin: 0;
-    line-height: 1.05;
-  }
-  .enseigne em {
-    font-style: normal;
-    color: var(--accent);
+  .logo {
     display: block;
-    font-size: 12px;
-    font-weight: 500;
-    letter-spacing: .28em;
-    text-transform: uppercase;
-    margin-top: 3px;
+    width: 100%;
+    max-width: 250px;
+    height: auto;
+    border-radius: 12px;
   }
+
 
   .compteur {
     font-family: var(--label);
     font-weight: 500;
-    font-size: 11px;
-    letter-spacing: .18em;
-    text-transform: uppercase;
+    font-size: 13px;
+    letter-spacing: .02em;
     color: var(--texte-doux);
-    margin-top: 7px;
+    margin-top: 11px;
   }
 
   /* ---------- filtres ---------- */
@@ -136,9 +125,9 @@
 
   .champ-recherche {
     width: 100%;
-    background: var(--fond);
-    border: 1px solid var(--ligne);
-    border-radius: 2px;
+    background: var(--surface-2);
+    border: 1px solid transparent;
+    border-radius: 999px;
     padding: 9px 11px;
     font-size: 14px;
   }
@@ -152,25 +141,24 @@
   }
 
   .puce {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     font-family: var(--label);
     font-weight: 500;
-    font-size: 11px;
-    letter-spacing: .1em;
-    text-transform: uppercase;
-    padding: 5px 10px;
+    font-size: 13px;
+    padding: 7px 14px;
     border-radius: 999px;
-    border: 1px solid var(--ligne);
-    background: transparent;
-    color: var(--texte-doux);
-    transition: background .15s, color .15s, border-color .15s;
+    border: 0;
+    background: var(--surface-2);
+    color: var(--texte);
+    transition: transform .12s, filter .15s;
   }
-  .puce:hover { color: var(--texte); border-color: var(--ligne-fort); }
-  .puce[aria-pressed="true"] {
-    background: var(--texte);
-    border-color: var(--texte);
-    color: var(--fond);
-    font-weight: 400;
-  }
+  .puce:hover { filter: brightness(.96); }
+  .puce:active { transform: scale(.96); }
+  .puce .point { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+  .puce[aria-pressed="true"] { color: #FFFFFF; font-weight: 600; }
+  .puce[aria-pressed="true"] .point { background: rgba(255,255,255,.85) !important; }
 
   /* ---------- liste ---------- */
 
@@ -207,7 +195,7 @@
     font-family: var(--display);
     font-size: 16px;
     font-weight: 600;
-    letter-spacing: -.015em;
+    letter-spacing: 0;
     line-height: 1.25;
     flex: 1;
   }
@@ -238,18 +226,21 @@
   .etiquette {
     font-family: var(--label);
     font-weight: 500;
-    font-size: 10px;
-    letter-spacing: .1em;
-    text-transform: uppercase;
+    font-size: 11.5px;
+    letter-spacing: .01em;
     color: var(--texte-doux);
-    border: 1px solid var(--ligne);
-    padding: 2px 7px;
-    border-radius: 2px;
+    background: var(--surface-2);
+    border: 0;
+    padding: 3px 10px;
+    border-radius: 999px;
   }
+
+  .etiquette.categorie { color: #FFFFFF; font-weight: 600; }
 
   .a-tester {
     color: var(--accent);
-    border-color: var(--accent-ligne);
+    background: var(--accent-doux);
+    font-weight: 600;
   }
 
   /* signature : la note en fourchettes */
@@ -268,12 +259,24 @@
   .vide .titre {
     font-family: var(--display);
     font-weight: 600;
-    letter-spacing: -.02em;
+    letter-spacing: 0;
     font-size: 18px;
     color: var(--texte);
     margin-bottom: 8px;
   }
   .vide p { font-size: 13px; line-height: 1.6; margin: 0; }
+  .lien-restaurer {
+    margin-top: 18px;
+    background: transparent;
+    border: 0;
+    color: var(--texte-doux);
+    font-family: var(--label);
+    font-weight: 500;
+    font-size: 13px;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .lien-restaurer:hover { color: var(--accent); }
 
   /* ---------- pied ---------- */
 
@@ -290,30 +293,29 @@
   .bouton-principal {
     flex: 1;
     background: var(--accent);
-    color: var(--fond);
+    color: #FFFFFF;
     border: 0;
-    border-radius: 2px;
+    border-radius: 999px;
     padding: 11px;
     font-family: var(--label);
     font-weight: 500;
-    font-size: 12px;
-    letter-spacing: .15em;
-    text-transform: uppercase;
-    transition: filter .15s;
+    font-size: 14px;
+    letter-spacing: .01em;
+    transition: filter .15s, transform .12s;
   }
-  .bouton-principal:hover { filter: brightness(1.1); }
+  .bouton-principal:hover { filter: brightness(1.08); }
+  .bouton-principal:active { transform: scale(.98); }
 
   .bouton-icone {
-    background: transparent;
-    border: 1px solid var(--ligne);
-    border-radius: 2px;
-    padding: 9px 11px;
+    background: var(--surface-2);
+    border: 0;
+    border-radius: 12px;
+    padding: 11px 13px;
     color: var(--texte-doux);
-    font-size: 15px;
-    line-height: 1;
-    transition: color .15s, border-color .15s;
+    line-height: 0;
+    transition: color .15s, filter .15s;
   }
-  .bouton-icone:hover { color: var(--texte); border-color: var(--ligne-fort); }
+  .bouton-icone:hover { color: var(--accent); filter: brightness(.96); }
 
   /* ---------- volet d'édition ---------- */
 
@@ -354,7 +356,7 @@
     font-family: var(--display);
     font-size: 19px;
     font-weight: 600;
-    letter-spacing: -.02em;
+    letter-spacing: 0;
   }
 
   .volet-corps {
@@ -369,18 +371,17 @@
     display: block;
     font-family: var(--label);
     font-weight: 500;
-    font-size: 11px;
-    letter-spacing: .16em;
-    text-transform: uppercase;
+    font-size: 12.5px;
+    letter-spacing: .01em;
     color: var(--texte-doux);
     margin-bottom: 6px;
   }
 
   .saisie, .zone, .liste-deroulante {
     width: 100%;
-    background: var(--fond);
-    border: 1px solid var(--ligne);
-    border-radius: 2px;
+    background: var(--surface-2);
+    border: 1px solid transparent;
+    border-radius: 14px;
     padding: 10px 11px;
     font-size: 14px;
   }
@@ -399,11 +400,11 @@
 
   .propositions {
     position: absolute;
-    top: calc(100% + 4px);
+    top: calc(100% + 6px);
     left: 0; right: 0;
-    background: var(--fond);
-    border: 1px solid var(--ligne-fort);
-    border-radius: 2px;
+    background: var(--surface);
+    border: 1px solid var(--ligne);
+    border-radius: 14px;
     max-height: 262px;
     overflow-y: auto;
     z-index: 20;
@@ -422,16 +423,16 @@
   }
   .proposition:last-child { border-bottom: 0; }
   .proposition:hover, .proposition:focus { background: var(--accent-doux); }
-  .proposition .p-nom { font-family: var(--display); font-weight: 600; font-size: 14.5px; letter-spacing: -.01em; }
+  .proposition .p-nom { font-family: var(--display); font-weight: 600; font-size: 14.5px; letter-spacing: 0; }
   .proposition .p-adr { font-size: 11.5px; color: var(--texte-doux); margin-top: 2px; }
   .proposition .p-etat { font-size: 12px; color: var(--texte-doux); font-style: italic; }
 
   /* note en fourchettes, saisie */
   .note-choix { display: flex; gap: 4px; align-items: center; }
   .note-bouton {
-    background: transparent;
-    border: 1px solid var(--ligne);
-    border-radius: 2px;
+    background: var(--surface-2);
+    border: 1px solid transparent;
+    border-radius: 12px;
     padding: 7px 8px;
     line-height: 0;
     transition: border-color .15s, background .15s;
@@ -442,9 +443,7 @@
     line-height: 1;
     font-family: var(--label);
     font-weight: 500;
-    font-size: 11px;
-    letter-spacing: .1em;
-    text-transform: uppercase;
+    font-size: 13px;
     padding: 8px 10px;
     color: var(--texte-doux);
   }
@@ -459,17 +458,16 @@
   }
 
   .bouton-fantome {
-    background: transparent;
-    border: 1px solid var(--ligne);
-    border-radius: 2px;
+    background: var(--surface-2);
+    border: 0;
+    border-radius: 999px;
     padding: 11px 15px;
     font-family: var(--label);
     font-weight: 500;
-    font-size: 12px;
-    letter-spacing: .14em;
-    text-transform: uppercase;
+    font-size: 13px;
+    letter-spacing: .01em;
     color: var(--texte-doux);
-    transition: color .15s, border-color .15s;
+    transition: color .15s, filter .15s;
   }
   .bouton-fantome:hover { color: var(--texte); border-color: var(--ligne-fort); }
   .bouton-fantome.danger:hover { color: var(--danger); border-color: var(--danger); }
@@ -502,16 +500,15 @@
   .leaflet-popup-content { margin: 13px 15px; font-family: var(--body); }
   .leaflet-popup-close-button { color: var(--texte-doux) !important; }
 
-  .bulle-nom { font-family: var(--display); font-weight: 600; font-size: 16px; letter-spacing: -.015em; line-height: 1.25; }
+  .bulle-nom { font-family: var(--display); font-weight: 600; font-size: 16px; letter-spacing: 0; line-height: 1.25; }
   .bulle-adr { font-size: 11.5px; color: var(--texte-doux); margin-top: 4px; line-height: 1.4; }
   .bulle-mot { font-size: 12px; font-style: italic; margin-top: 7px; line-height: 1.45; }
   .bulle-actions { display: flex; gap: 8px; margin-top: 11px; align-items: center; }
   .bulle-lien {
     font-family: var(--label);
     font-weight: 400;
-    font-size: 10.5px;
-    letter-spacing: .1em;
-    text-transform: uppercase;
+    font-size: 12px;
+    letter-spacing: .01em;
     color: var(--accent) !important;
     text-decoration: none;
     border-bottom: 1px solid var(--accent-ligne);
@@ -521,7 +518,7 @@
   .bulle-modifier {
     background: transparent; border: 0; padding: 0;
     font-family: var(--label); font-weight: 500;
-    font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase;
+    font-size: 12px; letter-spacing: .01em;
     color: var(--texte-doux);
     border-bottom: 1px solid var(--ligne);
     padding-bottom: 1px;
@@ -559,12 +556,12 @@
   }
 
   .commande {
-    width: 38px; height: 38px;
+    width: 40px; height: 40px;
     display: grid;
     place-items: center;
     background: var(--surface);
     border: 1px solid var(--ligne);
-    border-radius: 9px;
+    border-radius: 999px;
     color: var(--texte);
     box-shadow: var(--ombre);
     font-size: 16px;
@@ -623,9 +620,8 @@
       padding: 14px 0;
       font-family: var(--label);
       font-weight: 300;
-      font-size: 11px;
-      letter-spacing: .16em;
-      text-transform: uppercase;
+      font-size: 13px;
+      letter-spacing: .01em;
       color: var(--texte-doux);
     }
     .onglet[aria-pressed="true"] { color: var(--accent); }
@@ -646,7 +642,7 @@
 
   <aside class="panneau">
     <header class="entete">
-      <h1 class="enseigne">DÉVOREUR <em>explorer</em></h1>
+      <img class="logo" src="logo.png" alt="Dévoreur Explorer">
       <div class="compteur" id="compteur">Chargement</div>
     </header>
 
@@ -659,8 +655,9 @@
 
     <footer class="pied">
       <button class="bouton-principal" id="btn-ajouter">Ajouter une adresse</button>
-      <button class="bouton-icone" id="btn-export" title="Enregistrer une sauvegarde">↓</button>
-      <button class="bouton-icone" id="btn-import" title="Restaurer une sauvegarde">↑</button>
+      <button class="bouton-icone" id="btn-export" title="Exporter mes adresses" aria-label="Exporter mes adresses">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15v3.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V15"/><path d="M12 3.5v11"/><path d="M8 10.5l4 4 4-4"/></svg>
+      </button>
       <input type="file" id="fichier-import" accept="application/json" hidden>
     </footer>
   </aside>
@@ -999,10 +996,21 @@
 
     zone.innerHTML = '';
     choix.forEach(function (c) {
+      var actif = filtreCategorie === c.id;
+      var teinte = c.couleur || (c.id === 'atester' ? '#6E2BB0' : '#4B1D78');
+
       var b = document.createElement('button');
       b.className = 'puce';
-      b.textContent = c.nom;
-      b.setAttribute('aria-pressed', filtreCategorie === c.id ? 'true' : 'false');
+      b.setAttribute('aria-pressed', actif ? 'true' : 'false');
+      if (actif) b.style.background = teinte;
+
+      if (c.id !== 'tout') {
+        var pt = document.createElement('span');
+        pt.className = 'point';
+        pt.style.background = teinte;
+        b.appendChild(pt);
+      }
+      b.appendChild(document.createTextNode(c.nom));
       b.addEventListener('click', function () {
         filtreCategorie = c.id;
         rafraichir();
@@ -1020,8 +1028,13 @@
       var vide = document.createElement('div');
       vide.className = 'vide';
       vide.innerHTML = lieux.length === 0
-        ? '<div class="titre">Le carnet est vierge</div><p>Ajoute ta première adresse : tape son nom, choisis-la dans la liste, et elle se pose sur la carte.</p>'
+        ? '<div class="titre">Le carnet est vierge</div><p>Ajoute ta première adresse : tape son nom, choisis-la dans la liste, et elle se pose sur la carte.</p><button class="lien-restaurer" id="btn-import">Restaurer une sauvegarde</button>'
         : '<div class="titre">Rien sous ce filtre</div><p>Élargis la recherche ou reviens à « Tout ».</p>';
+
+      var lien = vide.querySelector('#btn-import');
+      if (lien) lien.addEventListener('click', function () {
+        document.getElementById('fichier-import').click();
+      });
       zone.appendChild(vide);
       return;
     }
@@ -1036,7 +1049,7 @@
               '<span class="fiche-nom">' + echapper(l.nom) + '</span></div>';
       if (l.adresse) h += '<div class="fiche-adresse">' + echapper(l.adresse) + '</div>';
       h += '<div class="fiche-bas">' + rangFourchettes(l.note) +
-           '<span class="etiquette">' + echapper(c.nom) + '</span>';
+           '<span class="etiquette categorie" style="background:' + c.couleur + '">' + echapper(c.nom) + '</span>';
       (l.tags || []).forEach(function (t) {
         h += '<span class="etiquette">' + echapper(t) + '</span>';
       });
@@ -1410,9 +1423,6 @@
   document.getElementById('btn-pointer').addEventListener('click', lancerPointage);
   document.getElementById('btn-export').addEventListener('click', exporter);
 
-  document.getElementById('btn-import').addEventListener('click', function () {
-    document.getElementById('fichier-import').click();
-  });
   document.getElementById('fichier-import').addEventListener('change', function (e) {
     if (e.target.files[0]) importer(e.target.files[0]);
     e.target.value = '';
