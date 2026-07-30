@@ -193,12 +193,13 @@
   .ville .croix:hover { background: var(--pastille-forte); color: var(--danger); }
 
   .ville[aria-pressed="true"] {
-    background: var(--accent);
-    color: #FFFFFF;
+    background: var(--accent-doux);
+    box-shadow: inset 0 0 0 1.5px var(--accent);
+    color: var(--accent);
     font-weight: 600;
   }
-  .ville[aria-pressed="true"] .croix { color: rgba(255,255,255,.75); }
-  .ville[aria-pressed="true"] .croix:hover { background: rgba(255,255,255,.2); color: #FFFFFF; }
+  .ville[aria-pressed="true"] .croix { color: var(--accent); opacity: .7; }
+  .ville[aria-pressed="true"] .croix:hover { background: var(--pastille-forte); opacity: 1; }
 
   .ville.ajout {
     padding: 6px 13px;
@@ -836,7 +837,7 @@
   <aside class="panneau">
     <header class="entete">
       <img class="logo" src="logo.png" alt="Dévoreur Explorer">
-      <span class="version" id="version">v10</span>
+      <span class="version" id="version">v11</span>
 
     </header>
 
@@ -1020,7 +1021,7 @@
   var filtreCategorie = 'tout';
   var filtreEtat = 'tout';
   var villes = [];
-  var villeActive = null;
+  var villesActives = [];
   var teinteChoisie = '#C24DE8';
   var enEdition = null;      // id du lieu en cours d'édition, null si nouveau
   var brouillon = null;      // objet en cours de saisie
@@ -1029,6 +1030,27 @@
   var epingles = {};
   var minuterieAuto = null;
   var minuterieMessage = null;
+
+  var IDF = ['75','77','78','91','92','93','94','95'];
+
+  function codePostal(texte) {
+    var m = String(texte || '').match(/\b(\d{5})\b/);
+    return m ? m[1] : null;
+  }
+
+  function departement(cp) {
+    if (!cp) return null;
+    if (cp.indexOf('97') === 0 || cp.indexOf('98') === 0) return cp.slice(0, 3);
+    return cp.slice(0, 2);
+  }
+
+  /* L'Île-de-France est traitée d'un seul tenant : ses huit départements
+     forment un même groupe, comme tu l'as demandé. */
+  function groupe(dep) {
+    if (!dep) return null;
+    if (dep === '20') return '20';
+    return IDF.indexOf(dep) !== -1 ? 'IDF' : dep;
+  }
 
   function distanceKm(aLat, aLng, bLat, bLng) {
     var R = 6371;
@@ -1326,10 +1348,21 @@
       if (filtreEtat === 'teste' && !l.note) return false;
       if (filtreCategorie !== 'tout' && l.categorie !== filtreCategorie) return false;
 
-      if (villeActive !== null && villes[villeActive]) {
-        var v = villes[villeActive];
-        if (typeof l.lat !== 'number') return false;
-        if (distanceKm(v.lat, v.lng, l.lat, l.lng) > (v.rayon || 30)) return false;
+      if (villesActives.length > 0) {
+        var gLieu = groupe(departement(l.cp || codePostal(l.adresse)));
+        var accepte = false;
+
+        for (var k = 0; k < villesActives.length; k++) {
+          var v = villes[villesActives[k]];
+          if (!v) continue;
+
+          if (v.groupe && gLieu) {
+            if (v.groupe === gLieu) { accepte = true; break; }
+          } else if (typeof l.lat === 'number') {
+            if (distanceKm(v.lat, v.lng, l.lat, l.lng) <= 40) { accepte = true; break; }
+          }
+        }
+        if (!accepte) return false;
       }
       if (!q) return true;
       var foin = [l.nom, l.adresse, l.commentaire, (l.tags || []).join(' ')].join(' ').toLowerCase();
@@ -1436,21 +1469,25 @@
       x.addEventListener('click', function (e) {
         e.stopPropagation();
         villes.splice(i, 1);
-        if (villeActive === i) villeActive = null;
-        else if (villeActive !== null && villeActive > i) villeActive--;
+        villesActives = villesActives
+          .filter(function (j) { return j !== i; })
+          .map(function (j) { return j > i ? j - 1 : j; });
         enregistrerVilles();
         rafraichir();
       });
       b.appendChild(x);
 
-      b.setAttribute('aria-pressed', villeActive === i ? 'true' : 'false');
+      var choisie = villesActives.indexOf(i) !== -1;
+      b.setAttribute('aria-pressed', choisie ? 'true' : 'false');
+      if (v.groupe) b.title = v.nom + ' — ' + (v.groupe === 'IDF' ? 'Île-de-France' : 'département ' + v.groupe);
 
       b.addEventListener('click', function () {
-        if (villeActive === i) {
-          villeActive = null;
+        var pos = villesActives.indexOf(i);
+        if (pos !== -1) {
+          villesActives.splice(pos, 1);
         } else {
-          villeActive = i;
-          carte.setView([v.lat, v.lng], v.zoom || 12);
+          villesActives.push(i);
+          carte.setView([v.lat, v.lng], v.zoom || 11);
         }
         rafraichir();
       });
@@ -1477,15 +1514,33 @@
       .then(function (d) {
         var f = (d.features || [])[0];
         if (!f) throw new Error('introuvable');
-        villes.push({
+
+        var v = {
           nom: f.properties.name || nom,
           lat: f.geometry.coordinates[1],
           lng: f.geometry.coordinates[0],
-          zoom: 12
-        });
+          zoom: 11,
+          groupe: groupe(departement(f.properties.postcode))
+        };
+
+        if (v.groupe) return v;
+
+        /* Photon ne donne pas toujours le code postal d'une ville :
+           on interroge alors son centre en sens inverse. */
+        return fetch('https://photon.komoot.io/reverse?lang=fr&lat=' + v.lat + '&lon=' + v.lng)
+          .then(function (r) { return r.json(); })
+          .then(function (rev) {
+            var pf = (rev.features || [])[0];
+            if (pf) v.groupe = groupe(departement(pf.properties.postcode));
+            return v;
+          })
+          .catch(function () { return v; });
+      })
+      .then(function (v) {
+        villes.push(v);
         enregistrerVilles();
         rafraichir();
-        annoncer(nom + ' ajoutée.');
+        annoncer(v.nom + ' ajoutée' + (v.groupe ? '.' : ' (filtrage par proximité).'));
       })
       .catch(function () {
         annoncer('Ville introuvable. Vérifie l\'orthographe.');
@@ -1551,10 +1606,14 @@
 
     var n = lieuxFiltres().length;
     var titre = 'Mes adresses';
-    if (villeActive !== null && villes[villeActive]) titre = villes[villeActive].nom;
+    if (villesActives.length === 1 && villes[villesActives[0]]) {
+      titre = villes[villesActives[0]].nom;
+    } else if (villesActives.length > 1) {
+      titre = villesActives.length + ' villes';
+    }
     document.getElementById('feuille-entete').innerHTML =
       echapper(titre) + '<span class="nombre">' + n + (n > 1 ? ' adresses' : ' adresse') + '</span>';
-    document.getElementById('version').textContent = 'v10';
+    document.getElementById('version').textContent = 'v11';
   }
 
   /* ---------------------------------------------------------------
@@ -1763,6 +1822,7 @@
   function lireVolet() {
     brouillon.nom = document.getElementById('champ-nom').value.trim();
     brouillon.adresse = document.getElementById('champ-adresse').value.trim();
+    brouillon.cp = codePostal(brouillon.adresse);
     brouillon.categorie = document.getElementById('champ-categorie').value;
     brouillon.commentaire = document.getElementById('champ-commentaire').value.trim();
     brouillon.tags = document.getElementById('champ-tags').value
