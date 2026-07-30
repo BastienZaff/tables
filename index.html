@@ -1,6 +1,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<title>Carte des tables</title>
+<title>Dévoreur</title>
 
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#4B1D78">
@@ -857,7 +857,7 @@
   <aside class="panneau">
     <header class="entete">
       <img class="logo" src="logo.png" alt="Dévoreur Explorer">
-      <span class="version" id="version">v12</span>
+      <span class="version" id="version">v13</span>
 
     </header>
 
@@ -1581,6 +1581,38 @@
     zone.appendChild(plus);
   }
 
+  /* Les villes ajoutées avant la gestion des départements n'ont pas
+     cette information : on la retrouve une fois pour toutes au démarrage. */
+  function reparerVilles() {
+    var aFaire = [];
+    villes.forEach(function (v, i) { if (!v.groupe) aFaire.push(i); });
+    if (aFaire.length === 0) return;
+
+    var rang = 0;
+    function suivante() {
+      if (rang >= aFaire.length) {
+        enregistrerVilles();
+        dessinerVilles();
+        return;
+      }
+      var v = villes[aFaire[rang]];
+      rang++;
+
+      fetch('https://photon.komoot.io/reverse?lang=fr&lat=' + v.lat + '&lon=' + v.lng)
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          var f = (d.features || [])[0];
+          if (f && f.properties.postcode) {
+            v.dep = departement(f.properties.postcode);
+            v.groupe = groupe(v.dep);
+          }
+        })
+        .catch(function () {})
+        .then(function () { setTimeout(suivante, 350); });
+    }
+    suivante();
+  }
+
   function ajouterVille() {
     var nom = prompt('Quelle ville veux-tu ajouter ?');
     if (!nom || !nom.trim()) return;
@@ -1696,7 +1728,7 @@
     }
     document.getElementById('feuille-entete').innerHTML =
       echapper(titre) + '<span class="nombre">' + n + (n > 1 ? ' adresses' : ' adresse') + '</span>';
-    document.getElementById('version').textContent = 'v12';
+    document.getElementById('version').textContent = 'v13';
   }
 
   /* ---------------------------------------------------------------
@@ -2105,6 +2137,8 @@
   demarrerCarte();
   appliquerTheme();
   appliquerFond();
+
+  reparerVilles();
 
   charger().then(function () {
     rafraichir();
