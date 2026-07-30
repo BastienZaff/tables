@@ -297,6 +297,22 @@
   }
   [data-theme="sombre"] .feuille { box-shadow: 0 -8px 24px rgba(0,0,0,.35); }
 
+  .poignee-feuille {
+    display: none;
+    flex: none;
+    padding: 9px 0 4px;
+    justify-content: center;
+    cursor: grab;
+    touch-action: none;
+  }
+  .poignee-feuille span {
+    display: block;
+    width: 42px; height: 4px;
+    border-radius: 2px;
+    background: var(--ligne-fort);
+  }
+  .poignee-feuille:active { cursor: grabbing; }
+
   .feuille-entete {
     flex: none;
     padding: 17px 22px 14px;
@@ -861,7 +877,23 @@
       z-index: 800;
     }
     .app[data-vue="carte"] .panneau { display: none; }
-    .app[data-vue="carte"] .languette { display: flex; }
+
+    .poignee-feuille { display: flex; }
+    .feuille { margin-top: 10px; }
+
+    /* Feuille dépliée : les réglages s'effacent, la liste prend tout l'écran. */
+    .app[data-feuille="haute"] .entete,
+    .app[data-feuille="haute"] .filtres { display: none; }
+    .app[data-feuille="haute"] .feuille { margin-top: calc(6px + env(safe-area-inset-top)); }
+    .languette { display: flex; }
+    .app[data-vue="liste"] .languette {
+      left: auto;
+      right: 0;
+      border-radius: 999px 0 0 999px;
+      padding: 0 0 0 4px;
+      transform: scaleX(-1);
+    }
+    .app[data-vue="liste"] .languette::after { right: auto; left: 7px; }
 
     .carte-zone { grid-row: 1; }
 
@@ -874,18 +906,30 @@
       border-top: 1px solid var(--ligne);
       padding-bottom: env(safe-area-inset-bottom);
     }
+    .onglets {
+      gap: 8px;
+      padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+      background: var(--surface);
+    }
     .onglet {
       flex: 1;
-      background: transparent;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      background: var(--surface-2);
       border: 0;
-      padding: 14px 0;
+      border-radius: 999px;
+      padding: 12px 0;
       font-family: var(--label);
-      font-weight: 300;
-      font-size: 13px;
-      letter-spacing: .01em;
+      font-weight: 600;
+      font-size: 14.5px;
       color: var(--texte-doux);
+      transition: background .15s, color .15s, transform .12s;
     }
-    .onglet[aria-pressed="true"] { color: var(--accent); }
+    .onglet:active { transform: scale(.97); }
+    .onglet svg { display: block; }
+    .onglet[aria-pressed="true"] { background: var(--accent); color: #FFFFFF; }
 
     .liste { padding-bottom: 150px; }
     .pied { padding-bottom: 14px; margin-bottom: 52px; }
@@ -908,7 +952,7 @@
   <aside class="panneau">
     <header class="entete">
       <img class="logo" src="logo.png" alt="Dévoreur Explorer">
-      <span class="version" id="version">v14</span>
+      <span class="version" id="version">v15</span>
 
     </header>
 
@@ -920,6 +964,7 @@
     </div>
 
     <div class="feuille">
+      <div class="poignee-feuille" id="poignee-feuille" aria-label="Agrandir la liste"><span></span></div>
       <div class="feuille-entete" id="feuille-entete"></div>
       <div class="liste" id="liste"></div>
     </div>
@@ -958,8 +1003,14 @@
   </button>
 
   <nav class="onglets">
-    <button class="onglet" id="onglet-liste" aria-pressed="false">Mes adresses</button>
-    <button class="onglet" id="onglet-carte" aria-pressed="true">Carte</button>
+    <button class="onglet" id="onglet-liste" aria-pressed="false">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg>
+      Mes adresses
+    </button>
+    <button class="onglet" id="onglet-carte" aria-pressed="true">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M9 3.5 3.5 6v14.5L9 18l6 2.5 5.5-2.5V3.5L15 6z"/><path d="M9 3.5V18M15 6v20.5"/></svg>
+      Carte
+    </button>
   </nav>
 </div>
 
@@ -1121,17 +1172,18 @@
     return m ? m[1] : null;
   }
 
-  function departement(cp) {
-    if (!cp) return null;
-    if (cp.indexOf('97') === 0 || cp.indexOf('98') === 0) return cp.slice(0, 3);
-    return cp.slice(0, 2);
+  function departement(code) {
+    if (!code) return null;
+    code = String(code);
+    if (code.indexOf('97') === 0 || code.indexOf('98') === 0) return code.slice(0, 3);
+    return code.slice(0, 2);
   }
 
   /* L'Île-de-France est traitée d'un seul tenant : ses huit départements
      forment un même groupe, comme tu l'as demandé. */
   function groupe(dep) {
     if (!dep) return null;
-    if (dep === '20') return '20';
+    if (dep === '2A' || dep === '2B' || dep === '20') return '20';
     return IDF.indexOf(dep) !== -1 ? 'IDF' : dep;
   }
 
@@ -1648,7 +1700,7 @@
      cette information : on la retrouve une fois pour toutes au démarrage. */
   function reparerVilles() {
     var aFaire = [];
-    villes.forEach(function (v, i) { if (!v.groupe) aFaire.push(i); });
+    villes.forEach(function (v, i) { if (!v.dep && !v.groupe) aFaire.push(i); });
     if (aFaire.length === 0) return;
 
     var rang = 0;
@@ -1661,17 +1713,17 @@
       var v = villes[aFaire[rang]];
       rang++;
 
-      fetch('https://photon.komoot.io/reverse?lang=fr&lat=' + v.lat + '&lon=' + v.lng)
+      fetch('https://api-adresse.data.gouv.fr/reverse/?lon=' + v.lng + '&lat=' + v.lat)
         .then(function (r) { return r.json(); })
         .then(function (d) {
           var f = (d.features || [])[0];
-          if (f && f.properties.postcode) {
-            v.dep = departement(f.properties.postcode);
+          if (f) {
+            v.dep = departement(f.properties.citycode || f.properties.postcode);
             v.groupe = groupe(v.dep);
           }
         })
         .catch(function () {})
-        .then(function () { setTimeout(suivante, 350); });
+        .then(function () { setTimeout(suivante, 300); });
     }
     suivante();
   }
@@ -1682,221 +1734,52 @@
     nom = nom.trim();
     annoncer('Recherche de ' + nom + '…');
 
-    var url = 'https://photon.komoot.io/api/?limit=1&lang=fr&layer=city&q=' + encodeURIComponent(nom);
-    fetch(url)
+    /* L'API Adresse du gouvernement donne le code INSEE de la commune,
+       dont les deux premiers caractères sont le département. */
+    fetch('https://api-adresse.data.gouv.fr/search/?type=municipality&limit=1&q=' + encodeURIComponent(nom))
       .then(function (r) { return r.json(); })
       .then(function (d) {
         var f = (d.features || [])[0];
-        if (!f) throw new Error('introuvable');
+        if (!f) return chercherVilleAilleurs(nom);
 
-        var v = {
+        var pr = f.properties;
+        var dep = departement(pr.citycode || pr.postcode);
+        return {
+          nom: pr.city || pr.name || nom,
+          lat: f.geometry.coordinates[1],
+          lng: f.geometry.coordinates[0],
+          zoom: 11,
+          dep: dep,
+          groupe: groupe(dep)
+        };
+      })
+      .then(function (v) {
+        if (!v) { annoncer('Ville introuvable.'); return; }
+        villes.push(v);
+        enregistrerVilles();
+        rafraichir();
+        annoncer(v.nom + (v.dep ? ' (' + (v.groupe === 'IDF' ? 'IDF' : v.dep) + ') ajoutée.' : ' ajoutée (filtrage par proximité).'));
+      })
+      .catch(function () { annoncer('Recherche impossible. Réessaie.'); });
+  }
+
+  /* Hors de France, on retombe sur Photon et un filtrage par distance. */
+  function chercherVilleAilleurs(nom) {
+    return fetch('https://photon.komoot.io/api/?limit=1&lang=fr&layer=city&q=' + encodeURIComponent(nom))
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var f = (d.features || [])[0];
+        if (!f) return null;
+        return {
           nom: f.properties.name || nom,
           lat: f.geometry.coordinates[1],
           lng: f.geometry.coordinates[0],
           zoom: 11,
-          dep: departement(f.properties.postcode),
-          groupe: groupe(departement(f.properties.postcode))
+          dep: null,
+          groupe: null
         };
-
-        if (v.groupe) return v;
-
-        /* Photon ne donne pas toujours le code postal d'une ville :
-           on interroge alors son centre en sens inverse. */
-        return fetch('https://photon.komoot.io/reverse?lang=fr&lat=' + v.lat + '&lon=' + v.lng)
-          .then(function (r) { return r.json(); })
-          .then(function (rev) {
-            var pf = (rev.features || [])[0];
-            if (pf) {
-              v.dep = departement(pf.properties.postcode);
-              v.groupe = groupe(v.dep);
-            }
-            return v;
-          })
-          .catch(function () { return v; });
       })
-      .then(function (v) {
-        villes.push(v);
-        enregistrerVilles();
-        rafraichir();
-        annoncer(v.nom + ' ajoutée' + (v.groupe ? '.' : ' (filtrage par proximité).'));
-      })
-      .catch(function () {
-        annoncer('Ville introuvable. Vérifie l\'orthographe.');
-      });
-  }
-
-  function dessinerListe() {
-    var zone = document.getElementById('liste');
-    var visibles = lieuxFiltres();
-    zone.innerHTML = '';
-
-    if (visibles.length === 0) {
-      var vide = document.createElement('div');
-      vide.className = 'vide';
-      vide.innerHTML = lieux.length === 0
-        ? '<div class="titre">Le carnet est vierge</div><p>Ajoute ta première adresse : tape son nom, choisis-la dans la liste, et elle se pose sur la carte.</p><button class="lien-restaurer" id="lien-restaurer">Restaurer une sauvegarde</button>'
-        : '<div class="titre">Rien sous ce filtre</div><p>Élargis la recherche ou reviens à « Tout ».</p>';
-
-      var lien = vide.querySelector('#lien-restaurer');
-      if (lien) lien.addEventListener('click', function () {
-        document.getElementById('fichier-import').click();
-      });
-      zone.appendChild(vide);
-      return;
-    }
-
-    visibles.forEach(function (l) {
-      var c = categorie(l.categorie);
-      var f = document.createElement('button');
-      f.className = 'fiche';
-
-      var h = '<div class="fiche-haut">' +
-              '<span class="pastille" style="background:' + c.couleur + '"></span>' +
-              '<span class="fiche-nom">' + echapper(l.nom) + '</span></div>';
-      if (l.adresse) h += '<div class="fiche-adresse">' + echapper(l.adresse) + '</div>';
-      h += '<div class="fiche-bas">' + rangFourchettes(l.note) +
-           '<span class="etiquette categorie" style="background:' + c.couleur + '">' + echapper(c.nom) + '</span>';
-      (l.tags || []).forEach(function (t) {
-        h += '<span class="etiquette">' + echapper(t) + '</span>';
-      });
-      h += '</div>';
-      if (l.commentaire) h += '<div class="fiche-mot">' + echapper(l.commentaire) + '</div>';
-
-      f.innerHTML = h;
-      f.addEventListener('click', function () {
-        if (typeof l.lat !== 'number') { modifier(l.identifiant); return; }
-        document.getElementById('app').setAttribute('data-vue', 'carte');
-        majOnglets();
-        carte.setView([l.lat, l.lng], 16);
-        var m = epingles[l.identifiant];
-        if (m) setTimeout(function () { m.openPopup(); }, 260);
-      });
-      zone.appendChild(f);
-    });
-  }
-
-  function rafraichir() {
-    dessinerBascule();
-    dessinerPuces();
-    dessinerVilles();
-    dessinerListe();
-    dessinerEpingles();
-
-    var n = lieuxFiltres().length;
-    var titre = 'Mes adresses';
-    if (villesActives.length === 1 && villes[villesActives[0]]) {
-      titre = villes[villesActives[0]].nom;
-    } else if (villesActives.length > 1) {
-      titre = villesActives.length + ' villes';
-    }
-    document.getElementById('feuille-entete').innerHTML =
-      echapper(titre) + '<span class="nombre">' + n + (n > 1 ? ' adresses' : ' adresse') + '</span>';
-    document.getElementById('version').textContent = 'v14';
-  }
-
-  /* ---------------------------------------------------------------
-     Recherche de lieux (Photon, puis Nominatim en secours)
-  --------------------------------------------------------------- */
-
-  function deviner(cle, valeur) {
-    if (cle !== 'amenity' && cle !== 'shop') return 'autre';
-    if (valeur === 'restaurant') return 'restaurant';
-    if (valeur === 'cafe' || valeur === 'coffee') return 'coffee';
-    if (valeur === 'fast_food') return 'fastfood';
-    if (valeur === 'bar' || valeur === 'pub' || valeur === 'wine_bar') return 'bar';
-    if (valeur === 'bakery' || valeur === 'pastry') return 'boulangerie';
-    return 'autre';
-  }
-
-  function chercherPhoton(texte) {
-    var centre = carte ? carte.getCenter() : { lat: PARIS[0], lng: PARIS[1] };
-    var url = 'https://photon.komoot.io/api/?limit=7&lang=fr&lat=' + centre.lat +
-              '&lon=' + centre.lng + '&q=' + encodeURIComponent(texte);
-
-    return fetch(url).then(function (r) {
-      if (!r.ok) throw new Error('photon');
-      return r.json();
-    }).then(function (d) {
-      return (d.features || []).map(function (f) {
-        var p = f.properties || {};
-        var morceaux = [];
-        if (p.housenumber) morceaux.push(p.housenumber);
-        if (p.street) morceaux.push(p.street);
-        var rue = morceaux.join(' ');
-        var ville = [p.postcode, p.city || p.county].filter(Boolean).join(' ');
-        return {
-          nom: p.name || rue || 'Sans nom',
-          adresse: [rue, ville].filter(Boolean).join(', '),
-          lat: f.geometry.coordinates[1],
-          lng: f.geometry.coordinates[0],
-          categorie: deviner(p.osm_key, p.osm_value)
-        };
-      });
-    });
-  }
-
-  function chercherNominatim(texte) {
-    var url = 'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=7&addressdetails=1&q=' +
-              encodeURIComponent(texte);
-
-    return fetch(url, { headers: { 'Accept-Language': 'fr' } }).then(function (r) {
-      if (!r.ok) throw new Error('nominatim');
-      return r.json();
-    }).then(function (d) {
-      return d.map(function (e) {
-        var a = e.address || {};
-        var rue = [a.house_number, a.road].filter(Boolean).join(' ');
-        var ville = [a.postcode, a.city || a.town || a.village].filter(Boolean).join(' ');
-        return {
-          nom: a.amenity || a.shop || (e.display_name || '').split(',')[0],
-          adresse: [rue, ville].filter(Boolean).join(', ') || (e.display_name || ''),
-          lat: parseFloat(e.lat),
-          lng: parseFloat(e.lon),
-          categorie: deviner(e.category, e.type)
-        };
-      });
-    });
-  }
-
-  function afficherPropositions(texte) {
-    var zone = document.getElementById('propositions');
-
-    if (texte.trim().length < 3) { zone.innerHTML = ''; return; }
-    zone.innerHTML = '<div class="proposition"><span class="p-etat">Recherche…</span></div>';
-
-    chercherPhoton(texte)
-      .catch(function () { return chercherNominatim(texte); })
-      .then(function (resultats) {
-        zone.innerHTML = '';
-
-        if (!resultats || resultats.length === 0) {
-          zone.innerHTML = '<div class="proposition"><span class="p-etat">Rien trouvé. Saisis le nom et l\'adresse à la main, puis pose le point avec « Poser à la main ».</span></div>';
-          return;
-        }
-
-        resultats.forEach(function (r) {
-          var b = document.createElement('button');
-          b.className = 'proposition';
-          b.type = 'button';
-          b.innerHTML = '<div class="p-nom">' + echapper(r.nom) + '</div>' +
-                        (r.adresse ? '<div class="p-adr">' + echapper(r.adresse) + '</div>' : '');
-          b.addEventListener('click', function () {
-            brouillon.nom = r.nom;
-            brouillon.adresse = r.adresse;
-            brouillon.lat = r.lat;
-            brouillon.lng = r.lng;
-            if (!enEdition) brouillon.categorie = r.categorie;
-            zone.innerHTML = '';
-            document.getElementById('champ-auto').value = '';
-            remplirVolet();
-            document.getElementById('champ-commentaire').focus();
-          });
-          zone.appendChild(b);
-        });
-      })
-      .catch(function () {
-        zone.innerHTML = '<div class="proposition"><span class="p-etat">La recherche est injoignable. Saisis le nom et l\'adresse à la main, puis pose le point avec « Poser à la main ».</span></div>';
-      });
+      .catch(function () { return null; });
   }
 
   /* ---------------------------------------------------------------
@@ -2168,7 +2051,46 @@
     majOnglets();
   }
 
-  document.getElementById('languette').addEventListener('click', ouvrirListe);
+  document.getElementById('languette').addEventListener('click', function () {
+    var app = document.getElementById('app');
+    if (app.getAttribute('data-vue') === 'liste') {
+      app.setAttribute('data-vue', 'carte');
+      majOnglets();
+    } else {
+      ouvrirListe();
+    }
+  });
+
+  /* Poignée de la feuille : on la tire vers le haut pour lire la liste
+     en plein écran, vers le bas pour retrouver les filtres. */
+  (function () {
+    var poignee = document.getElementById('poignee-feuille');
+    var app = document.getElementById('app');
+
+    function etat(v) {
+      if (v) app.setAttribute('data-feuille', 'haute');
+      else app.removeAttribute('data-feuille');
+      setTimeout(function () { if (carte) carte.invalidateSize(); }, 60);
+    }
+
+    poignee.addEventListener('click', function () {
+      etat(app.getAttribute('data-feuille') !== 'haute');
+    });
+
+    var y0 = null;
+    poignee.addEventListener('pointerdown', function (e) {
+      y0 = e.clientY;
+      poignee.setPointerCapture(e.pointerId);
+    });
+    poignee.addEventListener('pointermove', function (e) {
+      if (y0 === null) return;
+      var d = e.clientY - y0;
+      if (d < -35) { etat(true); y0 = null; }
+      else if (d > 35) { etat(false); y0 = null; }
+    });
+    poignee.addEventListener('pointerup', function () { y0 = null; });
+    poignee.addEventListener('pointercancel', function () { y0 = null; });
+  })();
 
   /* Glissement depuis le bord gauche, comme sur les applications natives. */
   (function () {
@@ -2187,6 +2109,26 @@
         ouvrirListe();
       }
     }, { passive: true });
+
+    /* Glissement inverse : depuis le bord droit, on referme le panneau. */
+    var retour = null;
+    document.addEventListener('touchstart', function (e) {
+      if (document.getElementById('app').getAttribute('data-vue') !== 'liste') return;
+      var t = e.touches[0];
+      retour = (t.clientX > window.innerWidth - 30) ? { x: t.clientX, y: t.clientY } : null;
+    }, { passive: true });
+
+    document.addEventListener('touchmove', function (e) {
+      if (!retour) return;
+      var t = e.touches[0];
+      if (retour.x - t.clientX > 55 && Math.abs(t.clientY - retour.y) < 45) {
+        retour = null;
+        document.getElementById('app').setAttribute('data-vue', 'carte');
+        majOnglets();
+      }
+    }, { passive: true });
+
+    document.addEventListener('touchend', function () { retour = null; }, { passive: true });
 
     document.addEventListener('touchend', function () { depart = null; }, { passive: true });
   })();
