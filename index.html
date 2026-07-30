@@ -891,9 +891,9 @@
       right: 0;
       border-radius: 999px 0 0 999px;
       padding: 0 0 0 4px;
-      transform: scaleX(-1);
     }
     .app[data-vue="liste"] .languette::after { right: auto; left: 7px; }
+    .app[data-vue="liste"] .languette svg { transform: rotate(180deg); }
 
     .carte-zone { grid-row: 1; }
 
@@ -952,7 +952,7 @@
   <aside class="panneau">
     <header class="entete">
       <img class="logo" src="logo.png" alt="Dévoreur Explorer">
-      <span class="version" id="version">v15</span>
+      <span class="version" id="version">v16</span>
 
     </header>
 
@@ -1780,6 +1780,184 @@
         };
       })
       .catch(function () { return null; });
+  }
+
+  function dessinerListe() {
+    var zone = document.getElementById('liste');
+    var visibles = lieuxFiltres();
+    zone.innerHTML = '';
+
+    if (visibles.length === 0) {
+      var vide = document.createElement('div');
+      vide.className = 'vide';
+      vide.innerHTML = lieux.length === 0
+        ? '<div class="titre">Le carnet est vierge</div><p>Ajoute ta première adresse : tape son nom, choisis-la dans la liste, et elle se pose sur la carte.</p><button class="lien-restaurer" id="lien-restaurer">Restaurer une sauvegarde</button>'
+        : '<div class="titre">Rien sous ce filtre</div><p>Élargis la recherche ou reviens à « Tout ».</p>';
+
+      var lien = vide.querySelector('#lien-restaurer');
+      if (lien) lien.addEventListener('click', function () {
+        document.getElementById('fichier-import').click();
+      });
+      zone.appendChild(vide);
+      return;
+    }
+
+    visibles.forEach(function (l) {
+      var c = categorie(l.categorie);
+      var f = document.createElement('button');
+      f.className = 'fiche';
+
+      var h = '<div class="fiche-haut">' +
+              '<span class="pastille" style="background:' + c.couleur + '"></span>' +
+              '<span class="fiche-nom">' + echapper(l.nom) + '</span></div>';
+      if (l.adresse) h += '<div class="fiche-adresse">' + echapper(l.adresse) + '</div>';
+      h += '<div class="fiche-bas">' + rangFourchettes(l.note) +
+           '<span class="etiquette categorie" style="background:' + c.couleur + '">' + echapper(c.nom) + '</span>';
+      (l.tags || []).forEach(function (t) {
+        h += '<span class="etiquette">' + echapper(t) + '</span>';
+      });
+      h += '</div>';
+      if (l.commentaire) h += '<div class="fiche-mot">' + echapper(l.commentaire) + '</div>';
+
+      f.innerHTML = h;
+      f.addEventListener('click', function () {
+        if (typeof l.lat !== 'number') { modifier(l.identifiant); return; }
+        document.getElementById('app').setAttribute('data-vue', 'carte');
+        majOnglets();
+        carte.setView([l.lat, l.lng], 16);
+        var m = epingles[l.identifiant];
+        if (m) setTimeout(function () { m.openPopup(); }, 260);
+      });
+      zone.appendChild(f);
+    });
+  }
+
+  function rafraichir() {
+    dessinerBascule();
+    dessinerPuces();
+    dessinerVilles();
+    dessinerListe();
+    dessinerEpingles();
+
+    var n = lieuxFiltres().length;
+    var titre = 'Mes adresses';
+    if (villesActives.length === 1 && villes[villesActives[0]]) {
+      titre = villes[villesActives[0]].nom;
+    } else if (villesActives.length > 1) {
+      titre = villesActives.length + ' villes';
+    }
+    document.getElementById('feuille-entete').innerHTML =
+      echapper(titre) + '<span class="nombre">' + n + (n > 1 ? ' adresses' : ' adresse') + '</span>';
+  }
+
+  /* ---------------------------------------------------------------
+     Recherche de lieux (Photon, puis Nominatim en secours)
+  --------------------------------------------------------------- */
+
+  function deviner(cle, valeur) {
+    if (cle !== 'amenity' && cle !== 'shop') return 'autre';
+    if (valeur === 'restaurant') return 'restaurant';
+    if (valeur === 'cafe' || valeur === 'coffee') return 'coffee';
+    if (valeur === 'fast_food') return 'fastfood';
+    if (valeur === 'bar' || valeur === 'pub' || valeur === 'wine_bar') return 'bar';
+    if (valeur === 'bakery' || valeur === 'pastry') return 'boulangerie';
+    return 'autre';
+  }
+
+  function connue(id) {
+    for (var i = 0; i < CATEGORIES.length; i++) if (CATEGORIES[i].id === id) return id;
+    return CATEGORIES.length ? CATEGORIES[0].id : 'autre';
+  }
+
+  function chercherPhoton(texte) {
+    var centre = carte ? carte.getCenter() : { lat: PARIS[0], lng: PARIS[1] };
+    var url = 'https://photon.komoot.io/api/?limit=7&lang=fr&lat=' + centre.lat +
+              '&lon=' + centre.lng + '&q=' + encodeURIComponent(texte);
+
+    return fetch(url).then(function (r) {
+      if (!r.ok) throw new Error('photon');
+      return r.json();
+    }).then(function (d) {
+      return (d.features || []).map(function (f) {
+        var p = f.properties || {};
+        var morceaux = [];
+        if (p.housenumber) morceaux.push(p.housenumber);
+        if (p.street) morceaux.push(p.street);
+        var rue = morceaux.join(' ');
+        var ville = [p.postcode, p.city || p.county].filter(Boolean).join(' ');
+        return {
+          nom: p.name || rue || 'Sans nom',
+          adresse: [rue, ville].filter(Boolean).join(', '),
+          lat: f.geometry.coordinates[1],
+          lng: f.geometry.coordinates[0],
+          categorie: connue(deviner(p.osm_key, p.osm_value))
+        };
+      });
+    });
+  }
+
+  function chercherNominatim(texte) {
+    var url = 'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=7&addressdetails=1&q=' +
+              encodeURIComponent(texte);
+
+    return fetch(url, { headers: { 'Accept-Language': 'fr' } }).then(function (r) {
+      if (!r.ok) throw new Error('nominatim');
+      return r.json();
+    }).then(function (d) {
+      return d.map(function (e) {
+        var a = e.address || {};
+        var rue = [a.house_number, a.road].filter(Boolean).join(' ');
+        var ville = [a.postcode, a.city || a.town || a.village].filter(Boolean).join(' ');
+        return {
+          nom: a.amenity || a.shop || (e.display_name || '').split(',')[0],
+          adresse: [rue, ville].filter(Boolean).join(', ') || (e.display_name || ''),
+          lat: parseFloat(e.lat),
+          lng: parseFloat(e.lon),
+          categorie: connue(deviner(e.category, e.type))
+        };
+      });
+    });
+  }
+
+  function afficherPropositions(texte) {
+    var zone = document.getElementById('propositions');
+
+    if (texte.trim().length < 3) { zone.innerHTML = ''; return; }
+    zone.innerHTML = '<div class="proposition"><span class="p-etat">Recherche…</span></div>';
+
+    chercherPhoton(texte)
+      .catch(function () { return chercherNominatim(texte); })
+      .then(function (resultats) {
+        zone.innerHTML = '';
+
+        if (!resultats || resultats.length === 0) {
+          zone.innerHTML = '<div class="proposition"><span class="p-etat">Rien trouvé. Saisis le nom et l\'adresse à la main, puis pose le point avec « Poser à la main ».</span></div>';
+          return;
+        }
+
+        resultats.forEach(function (r) {
+          var b = document.createElement('button');
+          b.className = 'proposition';
+          b.type = 'button';
+          b.innerHTML = '<div class="p-nom">' + echapper(r.nom) + '</div>' +
+                        (r.adresse ? '<div class="p-adr">' + echapper(r.adresse) + '</div>' : '');
+          b.addEventListener('click', function () {
+            brouillon.nom = r.nom;
+            brouillon.adresse = r.adresse;
+            brouillon.lat = r.lat;
+            brouillon.lng = r.lng;
+            if (!enEdition) brouillon.categorie = r.categorie;
+            zone.innerHTML = '';
+            document.getElementById('champ-auto').value = '';
+            remplirVolet();
+            document.getElementById('champ-commentaire').focus();
+          });
+          zone.appendChild(b);
+        });
+      })
+      .catch(function () {
+        zone.innerHTML = '<div class="proposition"><span class="p-etat">La recherche est injoignable. Saisis le nom et l\'adresse à la main, puis pose le point avec « Poser à la main ».</span></div>';
+      });
   }
 
   /* ---------------------------------------------------------------
