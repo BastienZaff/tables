@@ -603,6 +603,61 @@
 
   /* ---------- épingles ---------- */
 
+  .liste-cats { display: flex; flex-direction: column; gap: 6px; }
+
+  .ligne-cat {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface-2);
+    border-radius: 14px;
+    padding: 9px 10px 9px 13px;
+  }
+  .ligne-cat .rond {
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    flex: none;
+  }
+  .ligne-cat .nom {
+    flex: 1;
+    font-family: var(--label);
+    font-weight: 500;
+    font-size: 14px;
+  }
+  .ligne-cat .compte { font-size: 12.5px; color: var(--texte-doux); }
+  .ligne-cat .retirer {
+    background: transparent;
+    border: 0;
+    color: var(--texte-doux);
+    font-size: 19px;
+    line-height: 1;
+    padding: 2px 6px;
+    border-radius: 8px;
+  }
+  .ligne-cat .retirer:hover { color: var(--danger); background: var(--pastille-forte); }
+
+  .palette {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(38px, 1fr));
+    gap: 8px;
+  }
+  .teinte {
+    aspect-ratio: 1;
+    border-radius: 12px;
+    border: 3px solid transparent;
+    padding: 0;
+    transition: transform .12s;
+  }
+  .teinte:hover { transform: scale(1.06); }
+  .teinte[aria-pressed="true"] { border-color: var(--texte); }
+
+  .puce.gerer {
+    background: transparent;
+    border: 1px dashed var(--ligne-fort);
+    color: var(--texte-doux);
+  }
+  .puce.gerer:hover { color: var(--accent); border-color: var(--accent-ligne); }
+
   .epingle {
     width: 15px; height: 15px;
     border-radius: 50%;
@@ -866,6 +921,35 @@
   </div>
 </section>
 
+<section class="volet" id="volet-cats" aria-hidden="true">
+  <div class="volet-entete">
+    <span class="volet-titre">Mes catégories</span>
+    <button class="fermer" id="cats-fermer" aria-label="Fermer">×</button>
+  </div>
+
+  <div class="volet-corps">
+    <div class="groupe">
+      <span class="etiq">Existantes</span>
+      <div class="liste-cats" id="liste-cats"></div>
+      <div class="aide">Supprimer une catégorie ne supprime aucune adresse : elles basculent dans la première catégorie restante.</div>
+    </div>
+
+    <div class="groupe">
+      <label class="etiq" for="cat-nom">Nouvelle catégorie</label>
+      <input class="saisie" id="cat-nom" type="text" placeholder="Pizzeria, brunch, cave à manger…" maxlength="24">
+    </div>
+
+    <div class="groupe">
+      <span class="etiq">Sa couleur</span>
+      <div class="palette" id="palette"></div>
+    </div>
+  </div>
+
+  <div class="volet-pied">
+    <button class="bouton-principal" id="cat-ajouter">Ajouter la catégorie</button>
+  </div>
+</section>
+
 <div class="message" id="message"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -899,6 +983,11 @@
   var coucheFond = null;
   var PARIS = [48.8566, 2.3522];
 
+  var CLE_CATS = 'tables:categories';
+
+  var TEINTES = ['#C24DE8','#7A4BD0','#E7568F','#4B1D78','#B98CE8','#8A7F9B',
+                 '#E05C4B','#FF9A82','#D4457F','#6E2BB0','#A8459B','#5C7CE0'];
+
   var CATEGORIES = [
     { id: 'restaurant',  nom: 'Restaurant',  couleur: '#C24DE8' },
     { id: 'coffee',      nom: 'Coffee shop', couleur: '#7A4BD0' },
@@ -914,6 +1003,7 @@
   var filtreEtat = 'tout';
   var villes = [];
   var villeActive = null;
+  var teinteChoisie = '#C24DE8';
   var enEdition = null;      // id du lieu en cours d'édition, null si nouveau
   var brouillon = null;      // objet en cours de saisie
   var modePointage = false;
@@ -936,7 +1026,97 @@
     for (var i = 0; i < CATEGORIES.length; i++) {
       if (CATEGORIES[i].id === id) return CATEGORIES[i];
     }
-    return CATEGORIES[CATEGORIES.length - 1];
+    return CATEGORIES[CATEGORIES.length - 1] || { id: 'autre', nom: 'Autre', couleur: '#8A7F9B' };
+  }
+
+  function enregistrerCats() {
+    try { localStorage.setItem(CLE_CATS, JSON.stringify(CATEGORIES)); } catch (e) {}
+  }
+
+  function dessinerCats() {
+    var zone = document.getElementById('liste-cats');
+    zone.innerHTML = '';
+
+    CATEGORIES.forEach(function (c, i) {
+      var n = lieux.filter(function (l) { return l.categorie === c.id; }).length;
+
+      var ligne = document.createElement('div');
+      ligne.className = 'ligne-cat';
+
+      var rond = document.createElement('span');
+      rond.className = 'rond';
+      rond.style.background = c.couleur;
+      ligne.appendChild(rond);
+
+      var nom = document.createElement('span');
+      nom.className = 'nom';
+      nom.textContent = c.nom;
+      ligne.appendChild(nom);
+
+      var compte = document.createElement('span');
+      compte.className = 'compte';
+      compte.textContent = n === 0 ? '—' : n;
+      ligne.appendChild(compte);
+
+      var x = document.createElement('button');
+      x.className = 'retirer';
+      x.type = 'button';
+      x.textContent = '×';
+      x.setAttribute('aria-label', 'Supprimer ' + c.nom);
+      x.addEventListener('click', function () { retirerCat(i); });
+      ligne.appendChild(x);
+
+      zone.appendChild(ligne);
+    });
+  }
+
+  function retirerCat(i) {
+    if (CATEGORIES.length <= 1) { annoncer('Il faut au moins une catégorie.'); return; }
+    var c = CATEGORIES[i];
+    var n = lieux.filter(function (l) { return l.categorie === c.id; }).length;
+    if (n > 0 && !confirm('Supprimer « ' + c.nom + ' » ? Les ' + n + ' adresses concernées changeront de catégorie.')) return;
+
+    CATEGORIES.splice(i, 1);
+    var repli = CATEGORIES[0].id;
+    lieux.forEach(function (l) { if (l.categorie === c.id) l.categorie = repli; });
+    if (filtreCategorie === c.id) filtreCategorie = 'tout';
+
+    enregistrerCats();
+    enregistrer();
+    dessinerCats();
+    rafraichir();
+  }
+
+  function dessinerPalette() {
+    var zone = document.getElementById('palette');
+    zone.innerHTML = '';
+    TEINTES.forEach(function (t) {
+      var b = document.createElement('button');
+      b.className = 'teinte';
+      b.type = 'button';
+      b.style.background = t;
+      b.setAttribute('aria-label', 'Couleur ' + t);
+      b.setAttribute('aria-pressed', teinteChoisie === t ? 'true' : 'false');
+      b.addEventListener('click', function () { teinteChoisie = t; dessinerPalette(); });
+      zone.appendChild(b);
+    });
+  }
+
+  function ajouterCat() {
+    var champ = document.getElementById('cat-nom');
+    var nom = champ.value.trim();
+    if (!nom) { annoncer('Donne un nom à la catégorie.'); champ.focus(); return; }
+
+    CATEGORIES.push({
+      id: 'c' + Date.now().toString(36),
+      nom: nom,
+      couleur: teinteChoisie
+    });
+    champ.value = '';
+    enregistrerCats();
+    dessinerCats();
+    rafraichir();
+    annoncer('« ' + nom + ' » ajoutée.');
   }
 
   function id() {
@@ -1167,6 +1347,27 @@
       });
       zone.appendChild(b);
     });
+
+    var gerer = document.createElement('button');
+    gerer.className = 'puce gerer';
+    gerer.type = 'button';
+    gerer.textContent = '+ Catégorie';
+    gerer.addEventListener('click', ouvrirCats);
+    zone.appendChild(gerer);
+  }
+
+  function ouvrirCats() {
+    dessinerCats();
+    dessinerPalette();
+    document.getElementById('volet-cats').classList.add('ouvert');
+    document.getElementById('volet-cats').setAttribute('aria-hidden', 'false');
+    document.getElementById('voile').classList.add('ouvert');
+  }
+
+  function fermerCats() {
+    document.getElementById('volet-cats').classList.remove('ouvert');
+    document.getElementById('volet-cats').setAttribute('aria-hidden', 'true');
+    document.getElementById('voile').classList.remove('ouvert');
   }
 
   function dessinerBascule() {
@@ -1674,10 +1875,19 @@
 
   document.getElementById('btn-ajouter').addEventListener('click', ajouter);
   document.getElementById('btn-fermer').addEventListener('click', fermerVolet);
-  document.getElementById('voile').addEventListener('click', fermerVolet);
+  document.getElementById('voile').addEventListener('click', function () {
+    fermerVolet();
+    fermerCats();
+  });
   document.getElementById('btn-enregistrer').addEventListener('click', valider);
   document.getElementById('btn-supprimer').addEventListener('click', supprimer);
   document.getElementById('btn-pointer').addEventListener('click', lancerPointage);
+  document.getElementById('cats-fermer').addEventListener('click', fermerCats);
+  document.getElementById('cat-ajouter').addEventListener('click', ajouterCat);
+  document.getElementById('cat-nom').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') ajouterCat();
+  });
+
   document.getElementById('btn-export').addEventListener('click', exporter);
 
   document.getElementById('btn-import').addEventListener('click', function () {
@@ -1707,7 +1917,7 @@
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
       if (modePointage) { arreterPointage(); ouvrirVolet(); }
-      else fermerVolet();
+      else { fermerVolet(); fermerCats(); }
     }
   });
 
@@ -1721,6 +1931,12 @@
     var vv = localStorage.getItem(CLE_VILLES);
     villes = vv ? JSON.parse(vv) : [];
     if (!Array.isArray(villes)) villes = [];
+
+    var cc = localStorage.getItem(CLE_CATS);
+    if (cc) {
+      var d = JSON.parse(cc);
+      if (Array.isArray(d) && d.length) CATEGORIES = d;
+    }
   } catch (e) { villes = []; }
 
   demarrerCarte();
