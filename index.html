@@ -31,6 +31,9 @@
     --accent-ligne:rgba(110,43,176,.38);
     --danger:      #C62A5E;
     --ombre:       0 10px 30px rgba(42,17,69,.15);
+    --panneau:     linear-gradient(158deg, #F7D3F2 0%, #E6CDF7 42%, #B4C1FE 100%);
+    --pastille:      rgba(255,255,255,.60);
+    --pastille-forte:rgba(255,255,255,.86);
 
     --display: 'Fredoka', system-ui, sans-serif;
     --label:   'Fredoka', system-ui, sans-serif;
@@ -51,6 +54,9 @@
     --accent-ligne:rgba(208,117,235,.48);
     --danger:      #FF7FA8;
     --ombre:       0 10px 30px rgba(0,0,0,.45);
+    --panneau:     linear-gradient(158deg, #4B1D78 0%, #34155F 45%, #230C40 100%);
+    --pastille:      rgba(255,255,255,.11);
+    --pastille-forte:rgba(255,255,255,.18);
   }
 
   * { box-sizing: border-box; }
@@ -82,7 +88,7 @@
   }
 
   .panneau {
-    background: var(--surface);
+    background: var(--panneau);
     border-right: 1px solid var(--ligne);
     display: flex;
     flex-direction: column;
@@ -96,27 +102,89 @@
   /* ---------- entête ---------- */
 
   .entete {
-    padding: calc(22px + env(safe-area-inset-top)) 22px 14px;
-    border-bottom: 1px solid var(--ligne);
+    padding: calc(20px + env(safe-area-inset-top)) 22px 4px;
     flex: none;
+    display: flex;
+    justify-content: center;
   }
 
   .logo {
     display: block;
     width: 100%;
-    max-width: 250px;
+    max-width: 230px;
     height: auto;
-    border-radius: 12px;
   }
 
 
-  .compteur {
+  .bascule {
+    display: flex;
+    gap: 4px;
+    background: var(--pastille);
+    border-radius: 999px;
+    padding: 4px;
+    margin-bottom: 12px;
+  }
+
+  .bascule button {
+    flex: 1;
+    border: 0;
+    background: transparent;
+    border-radius: 999px;
+    padding: 8px 10px;
     font-family: var(--label);
     font-weight: 500;
     font-size: 13px;
-    letter-spacing: .02em;
     color: var(--texte-doux);
-    margin-top: 11px;
+    transition: background .15s, color .15s;
+  }
+  .bascule button[aria-pressed="true"] {
+    background: var(--pastille-forte);
+    color: var(--texte);
+    font-weight: 600;
+  }
+  [data-theme="sombre"] .bascule button[aria-pressed="true"] { color: #FFFFFF; }
+
+  .villes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--ligne);
+  }
+
+  .ville {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--pastille);
+    border: 0;
+    border-radius: 999px;
+    padding: 6px 8px 6px 13px;
+    font-family: var(--label);
+    font-weight: 500;
+    font-size: 13px;
+    color: var(--texte);
+    transition: filter .15s, transform .12s;
+  }
+  .ville:hover { filter: brightness(.96); }
+  .ville:active { transform: scale(.96); }
+  .ville .croix {
+    display: grid;
+    place-items: center;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    color: var(--texte-doux);
+    font-size: 15px;
+    line-height: 1;
+  }
+  .ville .croix:hover { background: var(--pastille-forte); color: var(--danger); }
+
+  .ville.ajout {
+    padding: 6px 13px;
+    color: var(--texte-doux);
+    border: 1px dashed var(--ligne-fort);
+    background: transparent;
   }
 
   /* ---------- filtres ---------- */
@@ -125,7 +193,7 @@
 
   .champ-recherche {
     width: 100%;
-    background: var(--surface-2);
+    background: var(--pastille);
     border: 1px solid transparent;
     border-radius: 999px;
     padding: 9px 11px;
@@ -150,7 +218,7 @@
     padding: 7px 14px;
     border-radius: 999px;
     border: 0;
-    background: var(--surface-2);
+    background: var(--pastille);
     color: var(--texte);
     transition: transform .12s, filter .15s;
   }
@@ -229,7 +297,7 @@
     font-size: 11.5px;
     letter-spacing: .01em;
     color: var(--texte-doux);
-    background: var(--surface-2);
+    background: var(--pastille-forte);
     border: 0;
     padding: 3px 10px;
     border-radius: 999px;
@@ -284,7 +352,7 @@
     flex: none;
     padding: 12px 22px;
     border-top: 1px solid var(--ligne);
-    background: var(--surface);
+    background: transparent;
     display: flex;
     gap: 8px;
     align-items: center;
@@ -307,7 +375,7 @@
   .bouton-principal:active { transform: scale(.98); }
 
   .bouton-icone {
-    background: var(--surface-2);
+    background: var(--pastille-forte);
     border: 0;
     border-radius: 12px;
     padding: 11px 13px;
@@ -643,12 +711,14 @@
   <aside class="panneau">
     <header class="entete">
       <img class="logo" src="logo.png" alt="Dévoreur Explorer">
-      <div class="compteur" id="compteur">Chargement</div>
+
     </header>
 
     <div class="filtres">
+      <div class="bascule" id="bascule-etat"></div>
       <input class="champ-recherche" id="filtre-texte" type="search" placeholder="Chercher un nom, un mot, un tag…" autocomplete="off">
       <div class="puces" id="puces-categories"></div>
+      <div class="villes" id="villes"></div>
     </div>
 
     <div class="liste" id="liste"></div>
@@ -657,6 +727,9 @@
       <button class="bouton-principal" id="btn-ajouter">Ajouter une adresse</button>
       <button class="bouton-icone" id="btn-export" title="Exporter mes adresses" aria-label="Exporter mes adresses">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15v3.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V15"/><path d="M12 3.5v11"/><path d="M8 10.5l4 4 4-4"/></svg>
+      </button>
+      <button class="bouton-icone" id="btn-import" title="Importer une sauvegarde" aria-label="Importer une sauvegarde">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15v3.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V15"/><path d="M12 14.5v-11"/><path d="M8 7.5l4-4 4 4"/></svg>
       </button>
       <input type="file" id="fichier-import" accept="application/json" hidden>
     </footer>
@@ -751,6 +824,7 @@
   var CLE = 'tables:v1';
   var CLE_THEME = 'tables:theme';
   var CLE_FOND = 'tables:fond';
+  var CLE_VILLES = 'tables:villes';
 
   var FONDS = {
     voyager: {
@@ -781,6 +855,8 @@
   var lieux = [];
   var filtreTexte = '';
   var filtreCategorie = 'tout';
+  var filtreEtat = 'tout';
+  var villes = [];
   var enEdition = null;      // id du lieu en cours d'édition, null si nouveau
   var brouillon = null;      // objet en cours de saisie
   var modePointage = false;
@@ -821,6 +897,10 @@
       }
       resoudre();
     });
+  }
+
+  function enregistrerVilles() {
+    try { localStorage.setItem(CLE_VILLES, JSON.stringify(villes)); } catch (e) {}
   }
 
   function enregistrer() {
@@ -976,10 +1056,8 @@
     var q = filtreTexte.trim().toLowerCase();
 
     return lieux.filter(function (l) {
-      if (filtreCategorie !== 'tout') {
-        if (filtreCategorie === 'atester') { if (l.note) return false; }
-        else if (l.categorie !== filtreCategorie) return false;
-      }
+      if (filtreEtat === 'atester' && l.note) return false;
+      if (filtreCategorie !== 'tout' && l.categorie !== filtreCategorie) return false;
       if (!q) return true;
       var foin = [l.nom, l.adresse, l.commentaire, (l.tags || []).join(' ')].join(' ').toLowerCase();
       return foin.indexOf(q) !== -1;
@@ -990,14 +1068,12 @@
 
   function dessinerPuces() {
     var zone = document.getElementById('puces-categories');
-    var choix = [{ id: 'tout', nom: 'Tout' }]
-      .concat(CATEGORIES)
-      .concat([{ id: 'atester', nom: 'À tester' }]);
+    var choix = [{ id: 'tout', nom: 'Tout' }].concat(CATEGORIES);
 
     zone.innerHTML = '';
     choix.forEach(function (c) {
       var actif = filtreCategorie === c.id;
-      var teinte = c.couleur || (c.id === 'atester' ? '#6E2BB0' : '#4B1D78');
+      var teinte = c.couleur || '#4B1D78';
 
       var b = document.createElement('button');
       b.className = 'puce';
@@ -1019,6 +1095,89 @@
     });
   }
 
+  function dessinerBascule() {
+    var zone = document.getElementById('bascule-etat');
+    var total = lieux.length;
+    var aTester = lieux.filter(function (l) { return !l.note; }).length;
+
+    zone.innerHTML = '';
+    [{ id: 'tout', nom: 'Toutes', n: total }, { id: 'atester', nom: 'À tester', n: aTester }]
+      .forEach(function (o) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = o.nom + ' · ' + o.n;
+        b.setAttribute('aria-pressed', filtreEtat === o.id ? 'true' : 'false');
+        b.addEventListener('click', function () { filtreEtat = o.id; rafraichir(); });
+        zone.appendChild(b);
+      });
+  }
+
+  function dessinerVilles() {
+    var zone = document.getElementById('villes');
+    zone.innerHTML = '';
+
+    villes.forEach(function (v, i) {
+      var b = document.createElement('button');
+      b.className = 'ville';
+      b.type = 'button';
+      b.appendChild(document.createTextNode(v.nom));
+
+      var x = document.createElement('span');
+      x.className = 'croix';
+      x.textContent = '×';
+      x.setAttribute('role', 'button');
+      x.setAttribute('aria-label', 'Retirer ' + v.nom);
+      x.addEventListener('click', function (e) {
+        e.stopPropagation();
+        villes.splice(i, 1);
+        enregistrerVilles();
+        dessinerVilles();
+      });
+      b.appendChild(x);
+
+      b.addEventListener('click', function () {
+        document.getElementById('app').setAttribute('data-vue', 'carte');
+        majOnglets();
+        carte.setView([v.lat, v.lng], v.zoom || 12);
+      });
+      zone.appendChild(b);
+    });
+
+    var plus = document.createElement('button');
+    plus.className = 'ville ajout';
+    plus.type = 'button';
+    plus.textContent = '+ Ville';
+    plus.addEventListener('click', ajouterVille);
+    zone.appendChild(plus);
+  }
+
+  function ajouterVille() {
+    var nom = prompt('Quelle ville veux-tu ajouter ?');
+    if (!nom || !nom.trim()) return;
+    nom = nom.trim();
+    annoncer('Recherche de ' + nom + '…');
+
+    var url = 'https://photon.komoot.io/api/?limit=1&lang=fr&layer=city&q=' + encodeURIComponent(nom);
+    fetch(url)
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var f = (d.features || [])[0];
+        if (!f) throw new Error('introuvable');
+        villes.push({
+          nom: f.properties.name || nom,
+          lat: f.geometry.coordinates[1],
+          lng: f.geometry.coordinates[0],
+          zoom: 12
+        });
+        enregistrerVilles();
+        dessinerVilles();
+        annoncer(nom + ' ajoutée.');
+      })
+      .catch(function () {
+        annoncer('Ville introuvable. Vérifie l\'orthographe.');
+      });
+  }
+
   function dessinerListe() {
     var zone = document.getElementById('liste');
     var visibles = lieuxFiltres();
@@ -1028,10 +1187,10 @@
       var vide = document.createElement('div');
       vide.className = 'vide';
       vide.innerHTML = lieux.length === 0
-        ? '<div class="titre">Le carnet est vierge</div><p>Ajoute ta première adresse : tape son nom, choisis-la dans la liste, et elle se pose sur la carte.</p><button class="lien-restaurer" id="btn-import">Restaurer une sauvegarde</button>'
+        ? '<div class="titre">Le carnet est vierge</div><p>Ajoute ta première adresse : tape son nom, choisis-la dans la liste, et elle se pose sur la carte.</p><button class="lien-restaurer" id="lien-restaurer">Restaurer une sauvegarde</button>'
         : '<div class="titre">Rien sous ce filtre</div><p>Élargis la recherche ou reviens à « Tout ».</p>';
 
-      var lien = vide.querySelector('#btn-import');
+      var lien = vide.querySelector('#lien-restaurer');
       if (lien) lien.addEventListener('click', function () {
         document.getElementById('fichier-import').click();
       });
@@ -1070,10 +1229,7 @@
   }
 
   function rafraichir() {
-    document.getElementById('compteur').textContent =
-      lieux.length === 0 ? 'Aucune adresse'
-      : lieux.length + (lieux.length > 1 ? ' adresses' : ' adresse') +
-        ' · ' + lieux.filter(function (l) { return !l.note; }).length + ' à tester';
+    dessinerBascule();
     dessinerPuces();
     dessinerListe();
     dessinerEpingles();
@@ -1423,6 +1579,10 @@
   document.getElementById('btn-pointer').addEventListener('click', lancerPointage);
   document.getElementById('btn-export').addEventListener('click', exporter);
 
+  document.getElementById('btn-import').addEventListener('click', function () {
+    document.getElementById('fichier-import').click();
+  });
+
   document.getElementById('fichier-import').addEventListener('change', function (e) {
     if (e.target.files[0]) importer(e.target.files[0]);
     e.target.value = '';
@@ -1457,11 +1617,15 @@
   try {
     theme = localStorage.getItem(CLE_THEME) || 'clair';
     fondActif = localStorage.getItem(CLE_FOND) || 'voyager';
-  } catch (e) {}
+    var vv = localStorage.getItem(CLE_VILLES);
+    villes = vv ? JSON.parse(vv) : [];
+    if (!Array.isArray(villes)) villes = [];
+  } catch (e) { villes = []; }
 
   demarrerCarte();
   appliquerTheme();
   appliquerFond();
+  dessinerVilles();
 
   charger().then(function () {
     rafraichir();
