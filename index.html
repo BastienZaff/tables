@@ -1,0 +1,1344 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Carte des tables</title>
+
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#14352B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Tables">
+<link rel="apple-touch-icon" href="icone-180.png">
+<link rel="icon" href="icone-192.png">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400;6..96,600&family=Oswald:wght@300;400;500&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --ink:        #0C1A15;
+    --vert:       #14352B;
+    --vert-haut:  #1D4A3C;
+    --vert-bas:   #0A1F19;
+    --craie:      #ECEEE7;
+    --craie-dim:  #9DAAA2;
+    --laiton:     #C9A227;
+    --lie:        #8C3346;
+    --ligne:      rgba(236,238,231,.14);
+
+    --c-restaurant: #C9A227;
+    --c-coffee:     #A8763E;
+    --c-fastfood:   #B4472F;
+    --c-bar:        #8C3346;
+    --c-boulangerie:#D8A93C;
+    --c-autre:      #6E8078;
+
+    --display: 'Bodoni Moda', Georgia, serif;
+    --label:   'Oswald', 'Arial Narrow', sans-serif;
+    --body:    'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    font-family: var(--body);
+    background: var(--vert-bas);
+    color: var(--craie);
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior: none;
+  }
+
+  button, input, select, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+
+  :focus-visible {
+    outline: 2px solid var(--laiton);
+    outline-offset: 2px;
+  }
+
+  /* ---------- ossature ---------- */
+
+  .app {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    height: 100dvh;
+    width: 100%;
+  }
+
+  .panneau {
+    background: var(--vert);
+    border-right: 1px solid var(--ligne);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    z-index: 500;
+  }
+
+  .carte-zone { position: relative; }
+  #map { position: absolute; inset: 0; background: #DCDDD5; }
+
+  /* ---------- entête ---------- */
+
+  .entete {
+    padding: calc(22px + env(safe-area-inset-top)) 22px 14px;
+    border-bottom: 1px solid var(--ligne);
+    flex: none;
+  }
+
+  .enseigne {
+    font-family: var(--display);
+    font-size: 27px;
+    font-weight: 400;
+    letter-spacing: .01em;
+    margin: 0;
+    line-height: 1.05;
+  }
+  .enseigne em { font-style: italic; color: var(--laiton); }
+
+  .compteur {
+    font-family: var(--label);
+    font-weight: 300;
+    font-size: 11px;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--craie-dim);
+    margin-top: 7px;
+  }
+
+  /* ---------- filtres ---------- */
+
+  .filtres { padding: 14px 22px 12px; flex: none; }
+
+  .champ-recherche {
+    width: 100%;
+    background: var(--vert-bas);
+    border: 1px solid var(--ligne);
+    border-radius: 2px;
+    padding: 9px 11px;
+    font-size: 14px;
+  }
+  .champ-recherche::placeholder { color: var(--craie-dim); }
+
+  .puces {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 11px;
+  }
+
+  .puce {
+    font-family: var(--label);
+    font-weight: 300;
+    font-size: 11px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    padding: 5px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--ligne);
+    background: transparent;
+    color: var(--craie-dim);
+    transition: background .15s, color .15s, border-color .15s;
+  }
+  .puce:hover { color: var(--craie); border-color: rgba(236,238,231,.3); }
+  .puce[aria-pressed="true"] {
+    background: var(--craie);
+    border-color: var(--craie);
+    color: var(--vert-bas);
+    font-weight: 400;
+  }
+
+  /* ---------- liste ---------- */
+
+  .liste {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    min-height: 0;
+    padding: 4px 0 90px;
+  }
+
+  .fiche {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid var(--ligne);
+    padding: 13px 22px;
+    transition: background .12s;
+  }
+  .fiche:hover { background: rgba(236,238,231,.05); }
+  .fiche.active { background: rgba(201,162,39,.12); }
+
+  .fiche-haut { display: flex; align-items: baseline; gap: 9px; }
+
+  .pastille {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    flex: none;
+    transform: translateY(-2px);
+  }
+
+  .fiche-nom {
+    font-family: var(--display);
+    font-size: 17px;
+    line-height: 1.2;
+    flex: 1;
+  }
+
+  .fiche-adresse {
+    font-size: 12px;
+    color: var(--craie-dim);
+    margin: 4px 0 0 16px;
+    line-height: 1.4;
+  }
+
+  .fiche-bas {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 7px 0 0 16px;
+    flex-wrap: wrap;
+  }
+
+  .fiche-mot {
+    font-size: 12px;
+    color: var(--craie-dim);
+    font-style: italic;
+    margin: 6px 0 0 16px;
+    line-height: 1.45;
+  }
+
+  .etiquette {
+    font-family: var(--label);
+    font-weight: 300;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--craie-dim);
+    border: 1px solid var(--ligne);
+    padding: 2px 7px;
+    border-radius: 2px;
+  }
+
+  .a-tester {
+    color: var(--laiton);
+    border-color: rgba(201,162,39,.45);
+  }
+
+  /* signature : la note en fourchettes */
+  .fourchettes { display: inline-flex; gap: 2px; align-items: center; }
+  .fourchettes svg { display: block; }
+  .fourchettes .creuse { opacity: .22; }
+
+  .vide {
+    padding: 46px 26px;
+    text-align: center;
+    color: var(--craie-dim);
+  }
+  .vide .titre {
+    font-family: var(--display);
+    font-style: italic;
+    font-size: 19px;
+    color: var(--craie);
+    margin-bottom: 8px;
+  }
+  .vide p { font-size: 13px; line-height: 1.6; margin: 0; }
+
+  /* ---------- pied ---------- */
+
+  .pied {
+    flex: none;
+    padding: 12px 22px;
+    border-top: 1px solid var(--ligne);
+    background: var(--vert);
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .bouton-principal {
+    flex: 1;
+    background: var(--laiton);
+    color: var(--vert-bas);
+    border: 0;
+    border-radius: 2px;
+    padding: 11px;
+    font-family: var(--label);
+    font-weight: 500;
+    font-size: 12px;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    transition: filter .15s;
+  }
+  .bouton-principal:hover { filter: brightness(1.1); }
+
+  .bouton-icone {
+    background: transparent;
+    border: 1px solid var(--ligne);
+    border-radius: 2px;
+    padding: 9px 11px;
+    color: var(--craie-dim);
+    font-size: 15px;
+    line-height: 1;
+    transition: color .15s, border-color .15s;
+  }
+  .bouton-icone:hover { color: var(--craie); border-color: rgba(236,238,231,.32); }
+
+  /* ---------- volet d'édition ---------- */
+
+  .voile {
+    position: fixed; inset: 0;
+    background: rgba(6,16,12,.6);
+    z-index: 1400;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .22s;
+  }
+  .voile.ouvert { opacity: 1; pointer-events: auto; }
+
+  .volet {
+    position: fixed;
+    top: 0; right: 0; bottom: 0;
+    width: 420px;
+    max-width: 100%;
+    background: var(--vert);
+    border-left: 1px solid var(--ligne);
+    z-index: 1500;
+    transform: translateX(102%);
+    transition: transform .28s cubic-bezier(.3,.8,.35,1);
+    display: flex;
+    flex-direction: column;
+  }
+  .volet.ouvert { transform: none; }
+
+  .volet-entete {
+    flex: none;
+    padding: calc(20px + env(safe-area-inset-top)) 22px 14px;
+    border-bottom: 1px solid var(--ligne);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .volet-titre {
+    font-family: var(--display);
+    font-size: 21px;
+    font-style: italic;
+  }
+
+  .volet-corps {
+    flex: 1;
+    overflow-y: auto;
+    padding: 18px 22px 26px;
+  }
+
+  .groupe { margin-bottom: 17px; }
+
+  .etiq {
+    display: block;
+    font-family: var(--label);
+    font-weight: 300;
+    font-size: 11px;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--craie-dim);
+    margin-bottom: 6px;
+  }
+
+  .saisie, .zone, .liste-deroulante {
+    width: 100%;
+    background: var(--vert-bas);
+    border: 1px solid var(--ligne);
+    border-radius: 2px;
+    padding: 10px 11px;
+    font-size: 14px;
+  }
+  .zone { resize: vertical; min-height: 70px; line-height: 1.5; font-family: var(--body); }
+  .liste-deroulante { appearance: none; }
+
+  .aide {
+    font-size: 11.5px;
+    color: var(--craie-dim);
+    margin-top: 6px;
+    line-height: 1.5;
+  }
+
+  /* autocomplétion */
+  .zone-auto { position: relative; }
+
+  .propositions {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0; right: 0;
+    background: var(--vert-bas);
+    border: 1px solid rgba(236,238,231,.22);
+    border-radius: 2px;
+    max-height: 262px;
+    overflow-y: auto;
+    z-index: 20;
+    box-shadow: 0 12px 30px rgba(0,0,0,.45);
+  }
+  .propositions:empty { display: none; }
+
+  .proposition {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid var(--ligne);
+    padding: 10px 12px;
+  }
+  .proposition:last-child { border-bottom: 0; }
+  .proposition:hover, .proposition:focus { background: rgba(201,162,39,.14); }
+  .proposition .p-nom { font-family: var(--display); font-size: 15px; }
+  .proposition .p-adr { font-size: 11.5px; color: var(--craie-dim); margin-top: 2px; }
+  .proposition .p-etat { font-size: 12px; color: var(--craie-dim); font-style: italic; }
+
+  /* note en fourchettes, saisie */
+  .note-choix { display: flex; gap: 4px; align-items: center; }
+  .note-bouton {
+    background: transparent;
+    border: 1px solid var(--ligne);
+    border-radius: 2px;
+    padding: 7px 8px;
+    line-height: 0;
+    transition: border-color .15s, background .15s;
+  }
+  .note-bouton:hover { border-color: rgba(201,162,39,.5); }
+  .note-bouton[aria-pressed="true"] { background: rgba(201,162,39,.16); border-color: var(--laiton); }
+  .note-bouton.zero {
+    line-height: 1;
+    font-family: var(--label);
+    font-weight: 300;
+    font-size: 11px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    padding: 8px 10px;
+    color: var(--craie-dim);
+  }
+  .note-bouton.zero[aria-pressed="true"] { color: var(--laiton); }
+
+  .volet-pied {
+    flex: none;
+    padding: 14px 22px;
+    border-top: 1px solid var(--ligne);
+    display: flex;
+    gap: 8px;
+  }
+
+  .bouton-fantome {
+    background: transparent;
+    border: 1px solid var(--ligne);
+    border-radius: 2px;
+    padding: 11px 15px;
+    font-family: var(--label);
+    font-weight: 300;
+    font-size: 12px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--craie-dim);
+    transition: color .15s, border-color .15s;
+  }
+  .bouton-fantome:hover { color: var(--craie); border-color: rgba(236,238,231,.32); }
+  .bouton-fantome.danger:hover { color: #E8798C; border-color: rgba(232,121,140,.5); }
+
+  .fermer {
+    background: transparent; border: 0;
+    color: var(--craie-dim);
+    font-size: 24px; line-height: 1;
+    padding: 2px 6px;
+  }
+  .fermer:hover { color: var(--craie); }
+
+  /* ---------- épingles ---------- */
+
+  .epingle {
+    width: 15px; height: 15px;
+    border-radius: 50%;
+    border: 2.5px solid var(--craie);
+    box-shadow: 0 1px 5px rgba(0,0,0,.45);
+  }
+  .epingle.creux { background: transparent !important; border-style: dashed; border-color: #fff; }
+
+  .leaflet-popup-content-wrapper {
+    background: var(--vert);
+    color: var(--craie);
+    border-radius: 3px;
+    border: 1px solid var(--ligne);
+  }
+  .leaflet-popup-tip { background: var(--vert); }
+  .leaflet-popup-content { margin: 13px 15px; font-family: var(--body); }
+  .leaflet-popup-close-button { color: var(--craie-dim) !important; }
+
+  .bulle-nom { font-family: var(--display); font-size: 17px; line-height: 1.2; }
+  .bulle-adr { font-size: 11.5px; color: var(--craie-dim); margin-top: 4px; line-height: 1.4; }
+  .bulle-mot { font-size: 12px; font-style: italic; margin-top: 7px; line-height: 1.45; }
+  .bulle-actions { display: flex; gap: 8px; margin-top: 11px; align-items: center; }
+  .bulle-lien {
+    font-family: var(--label);
+    font-weight: 400;
+    font-size: 10.5px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--laiton) !important;
+    text-decoration: none;
+    border-bottom: 1px solid rgba(201,162,39,.4);
+    padding-bottom: 1px;
+  }
+  .bulle-lien:hover { border-bottom-color: var(--laiton); }
+  .bulle-modifier {
+    background: transparent; border: 0; padding: 0;
+    font-family: var(--label); font-weight: 300;
+    font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--craie-dim);
+    border-bottom: 1px solid var(--ligne);
+    padding-bottom: 1px;
+  }
+  .bulle-modifier:hover { color: var(--craie); }
+
+  /* ---------- messages ---------- */
+
+  .message {
+    position: fixed;
+    left: 50%; bottom: 26px;
+    transform: translate(-50%, 14px);
+    background: var(--craie);
+    color: var(--vert-bas);
+    padding: 10px 17px;
+    border-radius: 2px;
+    font-size: 13px;
+    z-index: 3000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .22s, transform .22s;
+    box-shadow: 0 8px 26px rgba(0,0,0,.35);
+    max-width: 88vw;
+    text-align: center;
+  }
+  .message.visible { opacity: 1; transform: translate(-50%, 0); }
+
+  .bandeau-pointage {
+    position: absolute;
+    top: 14px; left: 50%;
+    transform: translateX(-50%);
+    background: var(--vert-bas);
+    color: var(--craie);
+    border: 1px solid var(--laiton);
+    padding: 9px 16px;
+    border-radius: 2px;
+    font-size: 13px;
+    z-index: 900;
+    display: none;
+    box-shadow: 0 6px 22px rgba(0,0,0,.4);
+  }
+  .bandeau-pointage.visible { display: block; }
+
+  /* ---------- mobile ---------- */
+
+  .onglets { display: none; }
+
+  @media (max-width: 860px) {
+    .app { grid-template-columns: 1fr; grid-template-rows: 1fr; }
+
+    .panneau {
+      position: fixed;
+      inset: 0;
+      border-right: 0;
+      z-index: 800;
+    }
+    .app[data-vue="carte"] .panneau { display: none; }
+
+    .carte-zone { grid-row: 1; }
+
+    .onglets {
+      display: flex;
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      z-index: 1000;
+      background: var(--vert-bas);
+      border-top: 1px solid var(--ligne);
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    .onglet {
+      flex: 1;
+      background: transparent;
+      border: 0;
+      padding: 14px 0;
+      font-family: var(--label);
+      font-weight: 300;
+      font-size: 11px;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      color: var(--craie-dim);
+    }
+    .onglet[aria-pressed="true"] { color: var(--laiton); }
+
+    .liste { padding-bottom: 150px; }
+    .pied { padding-bottom: 14px; margin-bottom: 52px; }
+    .volet { width: 100%; }
+    .bandeau-pointage { top: calc(12px + env(safe-area-inset-top)); width: 90%; text-align: center; }
+    .leaflet-top { margin-top: env(safe-area-inset-top); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+  }
+</style>
+
+<div class="app" id="app" data-vue="carte">
+
+  <aside class="panneau">
+    <header class="entete">
+      <h1 class="enseigne">Carte des <em>tables</em></h1>
+      <div class="compteur" id="compteur">Chargement</div>
+    </header>
+
+    <div class="filtres">
+      <input class="champ-recherche" id="filtre-texte" type="search" placeholder="Chercher un nom, un mot, un tag…" autocomplete="off">
+      <div class="puces" id="puces-categories"></div>
+    </div>
+
+    <div class="liste" id="liste"></div>
+
+    <footer class="pied">
+      <button class="bouton-principal" id="btn-ajouter">Ajouter une adresse</button>
+      <button class="bouton-icone" id="btn-export" title="Enregistrer une sauvegarde">↓</button>
+      <button class="bouton-icone" id="btn-import" title="Restaurer une sauvegarde">↑</button>
+      <input type="file" id="fichier-import" accept="application/json" hidden>
+    </footer>
+  </aside>
+
+  <div class="carte-zone">
+    <div id="map"></div>
+    <div class="bandeau-pointage" id="bandeau-pointage">Clique sur la carte pour poser le point</div>
+  </div>
+
+  <nav class="onglets">
+    <button class="onglet" id="onglet-carte" aria-pressed="true">Carte</button>
+    <button class="onglet" id="onglet-liste" aria-pressed="false">Mes adresses</button>
+  </nav>
+</div>
+
+<div class="voile" id="voile"></div>
+
+<section class="volet" id="volet" aria-hidden="true">
+  <div class="volet-entete">
+    <span class="volet-titre" id="volet-titre">Nouvelle adresse</span>
+    <button class="fermer" id="btn-fermer" aria-label="Fermer">×</button>
+  </div>
+
+  <div class="volet-corps">
+
+    <div class="groupe" id="groupe-recherche">
+      <label class="etiq" for="champ-auto">Le nom du lieu</label>
+      <div class="zone-auto">
+        <input class="saisie" id="champ-auto" type="text" placeholder="Septime, Ten Belles, Big Fernand…" autocomplete="off">
+        <div class="propositions" id="propositions"></div>
+      </div>
+      <div class="aide">Tape les premières lettres, puis choisis dans la liste : l'adresse et le point se remplissent tout seuls.</div>
+    </div>
+
+    <div class="groupe">
+      <label class="etiq" for="champ-nom">Nom</label>
+      <input class="saisie" id="champ-nom" type="text">
+    </div>
+
+    <div class="groupe">
+      <label class="etiq" for="champ-adresse">Adresse</label>
+      <input class="saisie" id="champ-adresse" type="text">
+      <div class="aide" id="aide-point">Aucun point posé sur la carte.</div>
+    </div>
+
+    <div class="groupe">
+      <label class="etiq" for="champ-categorie">Catégorie</label>
+      <select class="liste-deroulante" id="champ-categorie"></select>
+    </div>
+
+    <div class="groupe">
+      <span class="etiq">Ma note</span>
+      <div class="note-choix" id="note-choix"></div>
+    </div>
+
+    <div class="groupe">
+      <label class="etiq" for="champ-commentaire">Mon commentaire</label>
+      <textarea class="zone" id="champ-commentaire" placeholder="Le tartare est la raison de venir. Réserver au moins dix jours avant."></textarea>
+    </div>
+
+    <div class="groupe">
+      <label class="etiq" for="champ-tags">Mes tags</label>
+      <input class="saisie" id="champ-tags" type="text" placeholder="terrasse, dimanche, dîner client">
+      <div class="aide">Séparés par des virgules. Ils deviennent des filtres dans la barre de recherche.</div>
+    </div>
+
+  </div>
+
+  <div class="volet-pied">
+    <button class="bouton-principal" id="btn-enregistrer">Enregistrer</button>
+    <button class="bouton-fantome" id="btn-pointer">Poser à la main</button>
+    <button class="bouton-fantome danger" id="btn-supprimer" hidden>Supprimer</button>
+  </div>
+</section>
+
+<div class="message" id="message"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  /* ---------------------------------------------------------------
+     Données
+  --------------------------------------------------------------- */
+
+  var CLE = 'tables:v1';
+  var PARIS = [48.8566, 2.3522];
+
+  var CATEGORIES = [
+    { id: 'restaurant',  nom: 'Restaurant',  couleur: '#C9A227' },
+    { id: 'coffee',      nom: 'Coffee shop', couleur: '#A8763E' },
+    { id: 'fastfood',    nom: 'Fast food',   couleur: '#B4472F' },
+    { id: 'bar',         nom: 'Bar',         couleur: '#8C3346' },
+    { id: 'boulangerie', nom: 'Boulangerie', couleur: '#D8A93C' },
+    { id: 'autre',       nom: 'Autre',       couleur: '#6E8078' }
+  ];
+
+  var lieux = [];
+  var filtreTexte = '';
+  var filtreCategorie = 'tout';
+  var enEdition = null;      // id du lieu en cours d'édition, null si nouveau
+  var brouillon = null;      // objet en cours de saisie
+  var modePointage = false;
+  var carte, coucheEpingles;
+  var epingles = {};
+  var minuterieAuto = null;
+  var minuterieMessage = null;
+
+  function categorie(id) {
+    for (var i = 0; i < CATEGORIES.length; i++) {
+      if (CATEGORIES[i].id === id) return CATEGORIES[i];
+    }
+    return CATEGORIES[CATEGORIES.length - 1];
+  }
+
+  function id() {
+    return 'l' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  }
+
+  function echapper(t) {
+    return String(t == null ? '' : t).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  /* ---------------------------------------------------------------
+     Sauvegarde
+  --------------------------------------------------------------- */
+
+  function charger() {
+    return new Promise(function (resoudre) {
+      try {
+        var brut = localStorage.getItem(CLE);
+        var d = brut ? JSON.parse(brut) : [];
+        lieux = Array.isArray(d) ? d : [];
+      } catch (e) {
+        lieux = [];
+      }
+      resoudre();
+    });
+  }
+
+  function enregistrer() {
+    try {
+      localStorage.setItem(CLE, JSON.stringify(lieux));
+    } catch (e) {
+      annoncer('Sauvegarde impossible. Utilise le bouton ↓ pour garder une copie.');
+    }
+    return Promise.resolve();
+  }
+
+  function annoncer(texte) {
+    var boite = document.getElementById('message');
+    boite.textContent = texte;
+    boite.classList.add('visible');
+    clearTimeout(minuterieMessage);
+    minuterieMessage = setTimeout(function () {
+      boite.classList.remove('visible');
+    }, 3400);
+  }
+
+  /* ---------------------------------------------------------------
+     La fourchette : notation de 1 à 5
+  --------------------------------------------------------------- */
+
+  function fourchette(pleine, taille) {
+    var t = taille || 13;
+    return '<svg class="' + (pleine ? 'pleine' : 'creuse') + '" width="' + t + '" height="' + t +
+      '" viewBox="0 0 24 24" fill="none" stroke="' + (pleine ? '#C9A227' : '#ECEEE7') +
+      '" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+      '<path d="M6 2v7a3 3 0 0 0 3 3 3 3 0 0 0 3-3V2"/><path d="M9 2v6"/><path d="M9 12v10"/>' +
+      '</svg>';
+  }
+
+  function rangFourchettes(note) {
+    if (!note) return '<span class="etiquette a-tester">À tester</span>';
+    var s = '<span class="fourchettes" title="' + note + ' sur 5">';
+    for (var i = 1; i <= 5; i++) s += fourchette(i <= note);
+    return s + '</span>';
+  }
+
+  /* ---------------------------------------------------------------
+     Carte
+  --------------------------------------------------------------- */
+
+  function demarrerCarte() {
+    carte = L.map('map', { zoomControl: true, attributionControl: true }).setView(PARIS, 12);
+
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap'
+    }).addTo(carte);
+
+    coucheEpingles = L.layerGroup().addTo(carte);
+
+    carte.on('click', function (e) {
+      if (!modePointage) return;
+      brouillon.lat = e.latlng.lat;
+      brouillon.lng = e.latlng.lng;
+      arreterPointage();
+      ouvrirVolet();
+      annoncer('Point posé.');
+    });
+  }
+
+  function dessinerEpingles() {
+    coucheEpingles.clearLayers();
+    epingles = {};
+
+    var visibles = lieuxFiltres();
+
+    visibles.forEach(function (l) {
+      if (typeof l.lat !== 'number' || typeof l.lng !== 'number') return;
+      var c = categorie(l.categorie);
+
+      var icone = L.divIcon({
+        className: '',
+        html: '<div class="epingle' + (l.note ? '' : ' creux') + '" style="background:' + c.couleur + '"></div>',
+        iconSize: [15, 15],
+        iconAnchor: [7.5, 7.5]
+      });
+
+      var m = L.marker([l.lat, l.lng], { icon: icone, title: l.nom }).addTo(coucheEpingles);
+      m.bindPopup(contenuBulle(l), { closeButton: true, minWidth: 210 });
+      epingles[l.identifiant] = m;
+    });
+  }
+
+  function contenuBulle(l) {
+    var requete = encodeURIComponent(l.nom + ' ' + (l.adresse || ''));
+    var lien = 'https://www.google.com/maps/search/?api=1&query=' + requete;
+
+    var h = '<div class="bulle-nom">' + echapper(l.nom) + '</div>';
+    if (l.adresse) h += '<div class="bulle-adr">' + echapper(l.adresse) + '</div>';
+    h += '<div style="margin-top:8px">' + rangFourchettes(l.note) + '</div>';
+    if (l.commentaire) h += '<div class="bulle-mot">' + echapper(l.commentaire) + '</div>';
+    h += '<div class="bulle-actions">' +
+         '<a class="bulle-lien" href="' + lien + '" target="_blank" rel="noopener">Ouvrir dans Google Maps</a>' +
+         '<button class="bulle-modifier" data-modifier="' + l.identifiant + '">Modifier</button>' +
+         '</div>';
+    return h;
+  }
+
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-modifier]');
+    if (b) modifier(b.getAttribute('data-modifier'));
+  });
+
+  function cadrer() {
+    var pts = lieuxFiltres().filter(function (l) {
+      return typeof l.lat === 'number' && typeof l.lng === 'number';
+    }).map(function (l) { return [l.lat, l.lng]; });
+
+    if (pts.length === 0) return;
+    if (pts.length === 1) { carte.setView(pts[0], 15); return; }
+    carte.fitBounds(L.latLngBounds(pts), { padding: [50, 50], maxZoom: 16 });
+  }
+
+  /* ---------------------------------------------------------------
+     Filtres et liste
+  --------------------------------------------------------------- */
+
+  function lieuxFiltres() {
+    var q = filtreTexte.trim().toLowerCase();
+
+    return lieux.filter(function (l) {
+      if (filtreCategorie !== 'tout') {
+        if (filtreCategorie === 'atester') { if (l.note) return false; }
+        else if (l.categorie !== filtreCategorie) return false;
+      }
+      if (!q) return true;
+      var foin = [l.nom, l.adresse, l.commentaire, (l.tags || []).join(' ')].join(' ').toLowerCase();
+      return foin.indexOf(q) !== -1;
+    }).sort(function (a, b) {
+      return (b.note || 0) - (a.note || 0) || a.nom.localeCompare(b.nom, 'fr');
+    });
+  }
+
+  function dessinerPuces() {
+    var zone = document.getElementById('puces-categories');
+    var choix = [{ id: 'tout', nom: 'Tout' }]
+      .concat(CATEGORIES)
+      .concat([{ id: 'atester', nom: 'À tester' }]);
+
+    zone.innerHTML = '';
+    choix.forEach(function (c) {
+      var b = document.createElement('button');
+      b.className = 'puce';
+      b.textContent = c.nom;
+      b.setAttribute('aria-pressed', filtreCategorie === c.id ? 'true' : 'false');
+      b.addEventListener('click', function () {
+        filtreCategorie = c.id;
+        rafraichir();
+      });
+      zone.appendChild(b);
+    });
+  }
+
+  function dessinerListe() {
+    var zone = document.getElementById('liste');
+    var visibles = lieuxFiltres();
+    zone.innerHTML = '';
+
+    if (visibles.length === 0) {
+      var vide = document.createElement('div');
+      vide.className = 'vide';
+      vide.innerHTML = lieux.length === 0
+        ? '<div class="titre">Le carnet est vierge</div><p>Ajoute ta première adresse : tape son nom, choisis-la dans la liste, et elle se pose sur la carte.</p>'
+        : '<div class="titre">Rien sous ce filtre</div><p>Élargis la recherche ou reviens à « Tout ».</p>';
+      zone.appendChild(vide);
+      return;
+    }
+
+    visibles.forEach(function (l) {
+      var c = categorie(l.categorie);
+      var f = document.createElement('button');
+      f.className = 'fiche';
+
+      var h = '<div class="fiche-haut">' +
+              '<span class="pastille" style="background:' + c.couleur + '"></span>' +
+              '<span class="fiche-nom">' + echapper(l.nom) + '</span></div>';
+      if (l.adresse) h += '<div class="fiche-adresse">' + echapper(l.adresse) + '</div>';
+      h += '<div class="fiche-bas">' + rangFourchettes(l.note) +
+           '<span class="etiquette">' + echapper(c.nom) + '</span>';
+      (l.tags || []).forEach(function (t) {
+        h += '<span class="etiquette">' + echapper(t) + '</span>';
+      });
+      h += '</div>';
+      if (l.commentaire) h += '<div class="fiche-mot">' + echapper(l.commentaire) + '</div>';
+
+      f.innerHTML = h;
+      f.addEventListener('click', function () {
+        if (typeof l.lat !== 'number') { modifier(l.identifiant); return; }
+        document.getElementById('app').setAttribute('data-vue', 'carte');
+        majOnglets();
+        carte.setView([l.lat, l.lng], 16);
+        var m = epingles[l.identifiant];
+        if (m) setTimeout(function () { m.openPopup(); }, 260);
+      });
+      zone.appendChild(f);
+    });
+  }
+
+  function rafraichir() {
+    document.getElementById('compteur').textContent =
+      lieux.length === 0 ? 'Aucune adresse'
+      : lieux.length + (lieux.length > 1 ? ' adresses' : ' adresse') +
+        ' · ' + lieux.filter(function (l) { return !l.note; }).length + ' à tester';
+    dessinerPuces();
+    dessinerListe();
+    dessinerEpingles();
+  }
+
+  /* ---------------------------------------------------------------
+     Recherche de lieux (Photon, puis Nominatim en secours)
+  --------------------------------------------------------------- */
+
+  function deviner(cle, valeur) {
+    if (cle !== 'amenity' && cle !== 'shop') return 'autre';
+    if (valeur === 'restaurant') return 'restaurant';
+    if (valeur === 'cafe' || valeur === 'coffee') return 'coffee';
+    if (valeur === 'fast_food') return 'fastfood';
+    if (valeur === 'bar' || valeur === 'pub' || valeur === 'wine_bar') return 'bar';
+    if (valeur === 'bakery' || valeur === 'pastry') return 'boulangerie';
+    return 'autre';
+  }
+
+  function chercherPhoton(texte) {
+    var centre = carte ? carte.getCenter() : { lat: PARIS[0], lng: PARIS[1] };
+    var url = 'https://photon.komoot.io/api/?limit=7&lang=fr&lat=' + centre.lat +
+              '&lon=' + centre.lng + '&q=' + encodeURIComponent(texte);
+
+    return fetch(url).then(function (r) {
+      if (!r.ok) throw new Error('photon');
+      return r.json();
+    }).then(function (d) {
+      return (d.features || []).map(function (f) {
+        var p = f.properties || {};
+        var morceaux = [];
+        if (p.housenumber) morceaux.push(p.housenumber);
+        if (p.street) morceaux.push(p.street);
+        var rue = morceaux.join(' ');
+        var ville = [p.postcode, p.city || p.county].filter(Boolean).join(' ');
+        return {
+          nom: p.name || rue || 'Sans nom',
+          adresse: [rue, ville].filter(Boolean).join(', '),
+          lat: f.geometry.coordinates[1],
+          lng: f.geometry.coordinates[0],
+          categorie: deviner(p.osm_key, p.osm_value)
+        };
+      });
+    });
+  }
+
+  function chercherNominatim(texte) {
+    var url = 'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=7&addressdetails=1&q=' +
+              encodeURIComponent(texte);
+
+    return fetch(url, { headers: { 'Accept-Language': 'fr' } }).then(function (r) {
+      if (!r.ok) throw new Error('nominatim');
+      return r.json();
+    }).then(function (d) {
+      return d.map(function (e) {
+        var a = e.address || {};
+        var rue = [a.house_number, a.road].filter(Boolean).join(' ');
+        var ville = [a.postcode, a.city || a.town || a.village].filter(Boolean).join(' ');
+        return {
+          nom: a.amenity || a.shop || (e.display_name || '').split(',')[0],
+          adresse: [rue, ville].filter(Boolean).join(', ') || (e.display_name || ''),
+          lat: parseFloat(e.lat),
+          lng: parseFloat(e.lon),
+          categorie: deviner(e.category, e.type)
+        };
+      });
+    });
+  }
+
+  function afficherPropositions(texte) {
+    var zone = document.getElementById('propositions');
+
+    if (texte.trim().length < 3) { zone.innerHTML = ''; return; }
+    zone.innerHTML = '<div class="proposition"><span class="p-etat">Recherche…</span></div>';
+
+    chercherPhoton(texte)
+      .catch(function () { return chercherNominatim(texte); })
+      .then(function (resultats) {
+        zone.innerHTML = '';
+
+        if (!resultats || resultats.length === 0) {
+          zone.innerHTML = '<div class="proposition"><span class="p-etat">Rien trouvé. Saisis le nom et l\'adresse à la main, puis pose le point avec « Poser à la main ».</span></div>';
+          return;
+        }
+
+        resultats.forEach(function (r) {
+          var b = document.createElement('button');
+          b.className = 'proposition';
+          b.type = 'button';
+          b.innerHTML = '<div class="p-nom">' + echapper(r.nom) + '</div>' +
+                        (r.adresse ? '<div class="p-adr">' + echapper(r.adresse) + '</div>' : '');
+          b.addEventListener('click', function () {
+            brouillon.nom = r.nom;
+            brouillon.adresse = r.adresse;
+            brouillon.lat = r.lat;
+            brouillon.lng = r.lng;
+            if (!enEdition) brouillon.categorie = r.categorie;
+            zone.innerHTML = '';
+            document.getElementById('champ-auto').value = '';
+            remplirVolet();
+            document.getElementById('champ-commentaire').focus();
+          });
+          zone.appendChild(b);
+        });
+      })
+      .catch(function () {
+        zone.innerHTML = '<div class="proposition"><span class="p-etat">La recherche est injoignable. Saisis le nom et l\'adresse à la main, puis pose le point avec « Poser à la main ».</span></div>';
+      });
+  }
+
+  /* ---------------------------------------------------------------
+     Volet d'édition
+  --------------------------------------------------------------- */
+
+  function nouveauBrouillon() {
+    return {
+      identifiant: id(),
+      nom: '', adresse: '',
+      lat: null, lng: null,
+      categorie: 'restaurant',
+      note: 0, commentaire: '', tags: []
+    };
+  }
+
+  function ouvrirVolet() {
+    document.getElementById('volet').classList.add('ouvert');
+    document.getElementById('volet').setAttribute('aria-hidden', 'false');
+    document.getElementById('voile').classList.add('ouvert');
+  }
+
+  function fermerVolet() {
+    document.getElementById('volet').classList.remove('ouvert');
+    document.getElementById('volet').setAttribute('aria-hidden', 'true');
+    document.getElementById('voile').classList.remove('ouvert');
+    document.getElementById('propositions').innerHTML = '';
+    arreterPointage();
+    enEdition = null;
+    brouillon = null;
+  }
+
+  function ajouter() {
+    enEdition = null;
+    brouillon = nouveauBrouillon();
+    document.getElementById('volet-titre').textContent = 'Nouvelle adresse';
+    document.getElementById('btn-supprimer').hidden = true;
+    document.getElementById('groupe-recherche').hidden = false;
+    remplirVolet();
+    ouvrirVolet();
+    setTimeout(function () { document.getElementById('champ-auto').focus(); }, 300);
+  }
+
+  function modifier(identifiant) {
+    var l = lieux.filter(function (x) { return x.identifiant === identifiant; })[0];
+    if (!l) return;
+    enEdition = identifiant;
+    brouillon = JSON.parse(JSON.stringify(l));
+    document.getElementById('volet-titre').textContent = 'Modifier';
+    document.getElementById('btn-supprimer').hidden = false;
+    document.getElementById('groupe-recherche').hidden = true;
+    remplirVolet();
+    ouvrirVolet();
+  }
+
+  function remplirVolet() {
+    document.getElementById('champ-nom').value = brouillon.nom || '';
+    document.getElementById('champ-adresse').value = brouillon.adresse || '';
+    document.getElementById('champ-commentaire').value = brouillon.commentaire || '';
+    document.getElementById('champ-tags').value = (brouillon.tags || []).join(', ');
+
+    var sel = document.getElementById('champ-categorie');
+    sel.innerHTML = '';
+    CATEGORIES.forEach(function (c) {
+      var o = document.createElement('option');
+      o.value = c.id; o.textContent = c.nom;
+      if (c.id === brouillon.categorie) o.selected = true;
+      sel.appendChild(o);
+    });
+
+    var zone = document.getElementById('note-choix');
+    zone.innerHTML = '';
+
+    var zero = document.createElement('button');
+    zero.type = 'button';
+    zero.className = 'note-bouton zero';
+    zero.textContent = 'À tester';
+    zero.setAttribute('aria-pressed', brouillon.note ? 'false' : 'true');
+    zero.addEventListener('click', function () { brouillon.note = 0; remplirVolet(); });
+    zone.appendChild(zero);
+
+    for (var i = 1; i <= 5; i++) {
+      (function (n) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'note-bouton';
+        b.setAttribute('aria-label', n + ' sur 5');
+        b.setAttribute('aria-pressed', brouillon.note === n ? 'true' : 'false');
+        b.innerHTML = fourchette(brouillon.note >= n, 15);
+        b.addEventListener('click', function () { brouillon.note = n; remplirVolet(); });
+        zone.appendChild(b);
+      })(i);
+    }
+
+    document.getElementById('aide-point').textContent =
+      typeof brouillon.lat === 'number'
+        ? 'Point posé sur la carte.'
+        : 'Aucun point posé : choisis un lieu dans la liste, ou utilise « Poser à la main ».';
+  }
+
+  function lireVolet() {
+    brouillon.nom = document.getElementById('champ-nom').value.trim();
+    brouillon.adresse = document.getElementById('champ-adresse').value.trim();
+    brouillon.categorie = document.getElementById('champ-categorie').value;
+    brouillon.commentaire = document.getElementById('champ-commentaire').value.trim();
+    brouillon.tags = document.getElementById('champ-tags').value
+      .split(',').map(function (t) { return t.trim(); }).filter(Boolean);
+  }
+
+  function valider() {
+    lireVolet();
+
+    if (!brouillon.nom) { annoncer('Il manque le nom.'); document.getElementById('champ-nom').focus(); return; }
+    if (typeof brouillon.lat !== 'number') { annoncer('Il manque le point sur la carte. Utilise « Poser à la main ».'); return; }
+
+    if (enEdition) {
+      for (var i = 0; i < lieux.length; i++) {
+        if (lieux[i].identifiant === enEdition) { lieux[i] = brouillon; break; }
+      }
+      annoncer('Modifié.');
+    } else {
+      lieux.push(brouillon);
+      annoncer('« ' + brouillon.nom +' » ajouté.');
+    }
+
+    var pos = [brouillon.lat, brouillon.lng];
+    enregistrer();
+    fermerVolet();
+    rafraichir();
+    carte.setView(pos, 16);
+  }
+
+  function supprimer() {
+    if (!enEdition) return;
+    if (!confirm('Supprimer « ' + brouillon.nom + ' » ?')) return;
+    lieux = lieux.filter(function (l) { return l.identifiant !== enEdition; });
+    enregistrer();
+    fermerVolet();
+    rafraichir();
+    annoncer('Supprimé.');
+  }
+
+  /* ---------------------------------------------------------------
+     Pointage manuel
+  --------------------------------------------------------------- */
+
+  function lancerPointage() {
+    lireVolet();
+    modePointage = true;
+    document.getElementById('volet').classList.remove('ouvert');
+    document.getElementById('voile').classList.remove('ouvert');
+    document.getElementById('bandeau-pointage').classList.add('visible');
+    document.getElementById('app').setAttribute('data-vue', 'carte');
+    majOnglets();
+    setTimeout(function () { carte.invalidateSize(); }, 200);
+  }
+
+  function arreterPointage() {
+    modePointage = false;
+    document.getElementById('bandeau-pointage').classList.remove('visible');
+  }
+
+  /* ---------------------------------------------------------------
+     Sauvegarde manuelle
+  --------------------------------------------------------------- */
+
+  function exporter() {
+    var texte = JSON.stringify(lieux, null, 2);
+    var lien = document.createElement('a');
+    lien.href = URL.createObjectURL(new Blob([texte], { type: 'application/json' }));
+    lien.download = 'carte-des-tables-' + new Date().toISOString().slice(0, 10) + '.json';
+    lien.click();
+    URL.revokeObjectURL(lien.href);
+    annoncer('Sauvegarde téléchargée.');
+  }
+
+  function importer(fichier) {
+    var lecteur = new FileReader();
+    lecteur.onload = function () {
+      try {
+        var d = JSON.parse(lecteur.result);
+        if (!Array.isArray(d)) throw new Error('format');
+        var connus = {};
+        lieux.forEach(function (l) { connus[l.identifiant] = true; });
+        var ajoutes = 0;
+        d.forEach(function (l) {
+          if (l && l.identifiant && !connus[l.identifiant]) { lieux.push(l); ajoutes++; }
+        });
+        enregistrer();
+        rafraichir();
+        cadrer();
+        annoncer(ajoutes + (ajoutes > 1 ? ' adresses ajoutées.' : ' adresse ajoutée.'));
+      } catch (e) {
+        annoncer('Ce fichier n\'est pas une sauvegarde valide.');
+      }
+    };
+    lecteur.readAsText(fichier);
+  }
+
+  /* ---------------------------------------------------------------
+     Onglets mobile
+  --------------------------------------------------------------- */
+
+  function majOnglets() {
+    var vue = document.getElementById('app').getAttribute('data-vue');
+    document.getElementById('onglet-carte').setAttribute('aria-pressed', vue === 'carte' ? 'true' : 'false');
+    document.getElementById('onglet-liste').setAttribute('aria-pressed', vue === 'liste' ? 'true' : 'false');
+    if (vue === 'carte' && carte) setTimeout(function () { carte.invalidateSize(); }, 60);
+  }
+
+  /* ---------------------------------------------------------------
+     Branchements
+  --------------------------------------------------------------- */
+
+  document.getElementById('filtre-texte').addEventListener('input', function (e) {
+    filtreTexte = e.target.value;
+    dessinerListe();
+    dessinerEpingles();
+  });
+
+  document.getElementById('btn-ajouter').addEventListener('click', ajouter);
+  document.getElementById('btn-fermer').addEventListener('click', fermerVolet);
+  document.getElementById('voile').addEventListener('click', fermerVolet);
+  document.getElementById('btn-enregistrer').addEventListener('click', valider);
+  document.getElementById('btn-supprimer').addEventListener('click', supprimer);
+  document.getElementById('btn-pointer').addEventListener('click', lancerPointage);
+  document.getElementById('btn-export').addEventListener('click', exporter);
+
+  document.getElementById('btn-import').addEventListener('click', function () {
+    document.getElementById('fichier-import').click();
+  });
+  document.getElementById('fichier-import').addEventListener('change', function (e) {
+    if (e.target.files[0]) importer(e.target.files[0]);
+    e.target.value = '';
+  });
+
+  document.getElementById('champ-auto').addEventListener('input', function (e) {
+    var v = e.target.value;
+    clearTimeout(minuterieAuto);
+    minuterieAuto = setTimeout(function () { afficherPropositions(v); }, 320);
+  });
+
+  document.getElementById('onglet-carte').addEventListener('click', function () {
+    document.getElementById('app').setAttribute('data-vue', 'carte');
+    majOnglets();
+  });
+  document.getElementById('onglet-liste').addEventListener('click', function () {
+    document.getElementById('app').setAttribute('data-vue', 'liste');
+    majOnglets();
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+      if (modePointage) { arreterPointage(); ouvrirVolet(); }
+      else fermerVolet();
+    }
+  });
+
+  /* ---------------------------------------------------------------
+     Départ
+  --------------------------------------------------------------- */
+
+  demarrerCarte();
+  charger().then(function () {
+    rafraichir();
+    cadrer();
+    if (window.innerWidth > 860) document.getElementById('app').setAttribute('data-vue', 'liste');
+    majOnglets();
+  });
+
+})();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('sw.js').catch(function () {});
+  });
+}
+</script>
