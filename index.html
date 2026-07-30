@@ -130,10 +130,11 @@
     border: 0;
     background: transparent;
     border-radius: 999px;
-    padding: 8px 10px;
+    padding: 8px 6px;
     font-family: var(--label);
     font-weight: 500;
-    font-size: 13px;
+    font-size: 12.5px;
+    white-space: nowrap;
     color: var(--texte-doux);
     transition: background .15s, color .15s;
   }
@@ -180,12 +181,35 @@
   }
   .ville .croix:hover { background: var(--pastille-forte); color: var(--danger); }
 
+  .ville[aria-pressed="true"] {
+    background: var(--accent);
+    color: #FFFFFF;
+    font-weight: 600;
+  }
+  .ville[aria-pressed="true"] .croix { color: rgba(255,255,255,.75); }
+  .ville[aria-pressed="true"] .croix:hover { background: rgba(255,255,255,.2); color: #FFFFFF; }
+
   .ville.ajout {
     padding: 6px 13px;
     color: var(--texte-doux);
     border: 1px dashed var(--ligne-fort);
     background: transparent;
   }
+
+  .invite-villes {
+    width: 100%;
+    padding: 13px 16px;
+    border: 1px dashed var(--ligne-fort);
+    border-radius: 16px;
+    background: transparent;
+    color: var(--texte-doux);
+    font-family: var(--label);
+    font-weight: 500;
+    font-size: 13.5px;
+    text-align: center;
+    transition: color .15s, border-color .15s;
+  }
+  .invite-villes:hover { color: var(--accent); border-color: var(--accent-ligne); }
 
   /* ---------- filtres ---------- */
 
@@ -230,11 +254,40 @@
 
   /* ---------- liste ---------- */
 
+  .feuille {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    margin-top: 14px;
+    background: var(--surface);
+    border-radius: 22px 22px 0 0;
+    box-shadow: 0 -8px 24px rgba(42,17,69,.13);
+  }
+  [data-theme="sombre"] .feuille { box-shadow: 0 -8px 24px rgba(0,0,0,.35); }
+
+  .feuille-entete {
+    flex: none;
+    padding: 16px 22px 12px;
+    font-family: var(--label);
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--texte);
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .feuille-entete .nombre {
+    font-weight: 500;
+    font-size: 13px;
+    color: var(--texte-doux);
+  }
+
   .liste {
     flex: 1 1 auto;
     overflow-y: auto;
     min-height: 0;
-    padding: 4px 0 90px;
+    padding: 0 0 90px;
   }
 
   .fiche {
@@ -721,7 +774,10 @@
       <div class="villes" id="villes"></div>
     </div>
 
-    <div class="liste" id="liste"></div>
+    <div class="feuille">
+      <div class="feuille-entete" id="feuille-entete"></div>
+      <div class="liste" id="liste"></div>
+    </div>
 
     <footer class="pied">
       <button class="bouton-principal" id="btn-ajouter">Ajouter une adresse</button>
@@ -857,6 +913,7 @@
   var filtreCategorie = 'tout';
   var filtreEtat = 'tout';
   var villes = [];
+  var villeActive = null;
   var enEdition = null;      // id du lieu en cours d'édition, null si nouveau
   var brouillon = null;      // objet en cours de saisie
   var modePointage = false;
@@ -864,6 +921,16 @@
   var epingles = {};
   var minuterieAuto = null;
   var minuterieMessage = null;
+
+  function distanceKm(aLat, aLng, bLat, bLng) {
+    var R = 6371;
+    var dLat = (bLat - aLat) * Math.PI / 180;
+    var dLng = (bLng - aLng) * Math.PI / 180;
+    var x = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(aLat*Math.PI/180) * Math.cos(bLat*Math.PI/180) *
+            Math.sin(dLng/2) * Math.sin(dLng/2);
+    return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1-x));
+  }
 
   function categorie(id) {
     for (var i = 0; i < CATEGORIES.length; i++) {
@@ -1057,7 +1124,14 @@
 
     return lieux.filter(function (l) {
       if (filtreEtat === 'atester' && l.note) return false;
+      if (filtreEtat === 'teste' && !l.note) return false;
       if (filtreCategorie !== 'tout' && l.categorie !== filtreCategorie) return false;
+
+      if (villeActive !== null && villes[villeActive]) {
+        var v = villes[villeActive];
+        if (typeof l.lat !== 'number') return false;
+        if (distanceKm(v.lat, v.lng, l.lat, l.lng) > (v.rayon || 30)) return false;
+      }
       if (!q) return true;
       var foin = [l.nom, l.adresse, l.commentaire, (l.tags || []).join(' ')].join(' ').toLowerCase();
       return foin.indexOf(q) !== -1;
@@ -1101,7 +1175,9 @@
     var aTester = lieux.filter(function (l) { return !l.note; }).length;
 
     zone.innerHTML = '';
-    [{ id: 'tout', nom: 'Toutes', n: total }, { id: 'atester', nom: 'À tester', n: aTester }]
+    [{ id: 'tout', nom: 'Toutes', n: total },
+     { id: 'atester', nom: 'À tester', n: aTester },
+     { id: 'teste', nom: 'Testées', n: total - aTester }]
       .forEach(function (o) {
         var b = document.createElement('button');
         b.type = 'button';
@@ -1115,6 +1191,16 @@
   function dessinerVilles() {
     var zone = document.getElementById('villes');
     zone.innerHTML = '';
+
+    if (villes.length === 0) {
+      var invite = document.createElement('button');
+      invite.className = 'invite-villes';
+      invite.type = 'button';
+      invite.textContent = 'Ajoutez vos villes de préférence';
+      invite.addEventListener('click', ajouterVille);
+      zone.appendChild(invite);
+      return;
+    }
 
     villes.forEach(function (v, i) {
       var b = document.createElement('button');
@@ -1130,15 +1216,23 @@
       x.addEventListener('click', function (e) {
         e.stopPropagation();
         villes.splice(i, 1);
+        if (villeActive === i) villeActive = null;
+        else if (villeActive !== null && villeActive > i) villeActive--;
         enregistrerVilles();
-        dessinerVilles();
+        rafraichir();
       });
       b.appendChild(x);
 
+      b.setAttribute('aria-pressed', villeActive === i ? 'true' : 'false');
+
       b.addEventListener('click', function () {
-        document.getElementById('app').setAttribute('data-vue', 'carte');
-        majOnglets();
-        carte.setView([v.lat, v.lng], v.zoom || 12);
+        if (villeActive === i) {
+          villeActive = null;
+        } else {
+          villeActive = i;
+          carte.setView([v.lat, v.lng], v.zoom || 12);
+        }
+        rafraichir();
       });
       zone.appendChild(b);
     });
@@ -1170,7 +1264,7 @@
           zoom: 12
         });
         enregistrerVilles();
-        dessinerVilles();
+        rafraichir();
         annoncer(nom + ' ajoutée.');
       })
       .catch(function () {
@@ -1231,8 +1325,15 @@
   function rafraichir() {
     dessinerBascule();
     dessinerPuces();
+    dessinerVilles();
     dessinerListe();
     dessinerEpingles();
+
+    var n = lieuxFiltres().length;
+    var titre = 'Mes adresses';
+    if (villeActive !== null && villes[villeActive]) titre = villes[villeActive].nom;
+    document.getElementById('feuille-entete').innerHTML =
+      echapper(titre) + '<span class="nombre">' + n + (n > 1 ? ' adresses' : ' adresse') + '</span>';
   }
 
   /* ---------------------------------------------------------------
@@ -1625,7 +1726,6 @@
   demarrerCarte();
   appliquerTheme();
   appliquerFond();
-  dessinerVilles();
 
   charger().then(function () {
     rafraichir();

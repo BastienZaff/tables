@@ -2,7 +2,7 @@
    Change le numéro de version ci-dessous après chaque modification
    de l'application, pour forcer la mise à jour sur ton téléphone. */
 
-var VERSION = 'tables-v6';
+var VERSION = 'tables-v7';
 
 var COQUILLE = [
   './',
