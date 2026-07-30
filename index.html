@@ -100,6 +100,7 @@
   }
 
   .panneau {
+    position: relative;
     background: var(--panneau);
     border-right: 1px solid var(--ligne);
     display: flex;
@@ -113,12 +114,25 @@
 
   /* ---------- entête ---------- */
 
+  .reglages {
+    flex: 0 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
   .entete {
     position: relative;
-    padding: calc(20px + env(safe-area-inset-top)) 22px 4px;
-    flex: none;
+    padding: calc(14px + env(safe-area-inset-top)) 22px 2px;
     display: flex;
     justify-content: center;
+  }
+
+  .outils {
+    position: absolute;
+    left: 14px;
+    top: calc(12px + env(safe-area-inset-top));
+    display: flex;
+    gap: 6px;
   }
 
   .version {
@@ -134,15 +148,15 @@
   .logo {
     display: block;
     width: 100%;
-    max-width: 230px;
+    max-width: 168px;
     height: auto;
   }
 
   [data-theme="sombre"] .logo {
     background: linear-gradient(158deg, #F7D3F2 0%, #E6CDF7 42%, #B4C1FE 100%);
-    padding: 12px 16px;
-    border-radius: 20px;
-    max-width: 250px;
+    padding: 9px 12px;
+    border-radius: 16px;
+    max-width: 186px;
   }
 
 
@@ -244,7 +258,7 @@
 
   /* ---------- filtres ---------- */
 
-  .filtres { padding: 14px 22px 12px; flex: none; }
+  .filtres { padding: 12px 22px 14px; }
 
   .champ-recherche {
     width: 100%;
@@ -285,9 +299,13 @@
 
   /* ---------- liste ---------- */
 
+  /* Feuille dépliée : les réglages s'effacent, la liste prend tout l'espace. */
+  .app[data-feuille="haute"] .reglages { display: none; }
+  .app[data-feuille="haute"] .feuille { margin-top: calc(10px + env(safe-area-inset-top)); }
+
   .feuille {
     flex: 1 1 auto;
-    min-height: 0;
+    min-height: 210px;
     display: flex;
     flex-direction: column;
     margin-top: 14px;
@@ -298,7 +316,7 @@
   [data-theme="sombre"] .feuille { box-shadow: 0 -8px 24px rgba(0,0,0,.35); }
 
   .poignee-feuille {
-    display: none;
+    display: flex;
     flex: none;
     padding: 9px 0 4px;
     justify-content: center;
@@ -336,11 +354,29 @@
     border-radius: 999px;
   }
 
+  .flottant {
+    position: absolute;
+    right: 18px;
+    bottom: 18px;
+    z-index: 700;
+    width: 58px; height: 58px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #FFFFFF;
+    box-shadow: 0 6px 20px rgba(42,17,69,.34);
+    transition: transform .13s, filter .15s;
+  }
+  .flottant:hover { filter: brightness(1.08); }
+  .flottant:active { transform: scale(.93); }
+
   .liste {
     flex: 1 1 auto;
     overflow-y: auto;
     min-height: 0;
-    padding: 6px 0 90px;
+    padding: 6px 0 96px;
   }
 
   .fiche {
@@ -453,16 +489,6 @@
   .lien-restaurer:hover { color: var(--accent); }
 
   /* ---------- pied ---------- */
-
-  .pied {
-    flex: none;
-    padding: 12px 22px;
-    border-top: 1px solid var(--ligne);
-    background: transparent;
-    display: flex;
-    gap: 8px;
-    align-items: center;
-  }
 
   .bouton-principal {
     flex: 1;
@@ -878,13 +904,7 @@
     }
     .app[data-vue="carte"] .panneau { display: none; }
 
-    .poignee-feuille { display: flex; }
     .feuille { margin-top: 10px; }
-
-    /* Feuille dépliée : les réglages s'effacent, la liste prend tout l'écran. */
-    .app[data-feuille="haute"] .entete,
-    .app[data-feuille="haute"] .filtres { display: none; }
-    .app[data-feuille="haute"] .feuille { margin-top: calc(6px + env(safe-area-inset-top)); }
     .languette { display: flex; }
     .app[data-vue="liste"] .languette {
       left: auto;
@@ -931,8 +951,8 @@
     .onglet svg { display: block; }
     .onglet[aria-pressed="true"] { background: var(--accent); color: #FFFFFF; }
 
-    .liste { padding-bottom: 150px; }
-    .pied { padding-bottom: 14px; margin-bottom: 52px; }
+    .liste { padding-bottom: 120px; }
+    .flottant { bottom: calc(78px + env(safe-area-inset-bottom)); }
     .volet { width: 100%; }
     .bandeau-pointage { top: calc(12px + env(safe-area-inset-top)); width: 90%; text-align: center; }
     .leaflet-top { margin-top: env(safe-area-inset-top); }
@@ -950,17 +970,26 @@
 <div class="app" id="app" data-vue="carte">
 
   <aside class="panneau">
-    <header class="entete">
-      <img class="logo" src="logo.png" alt="Dévoreur Explorer">
-      <span class="version" id="version">v16</span>
+    <div class="reglages">
+      <header class="entete">
+        <div class="outils">
+          <button class="bouton-icone" id="btn-export" title="Exporter mes adresses" aria-label="Exporter mes adresses">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15v3.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V15"/><path d="M12 3.5v11"/><path d="M8 10.5l4 4 4-4"/></svg>
+          </button>
+          <button class="bouton-icone" id="btn-import" title="Importer une sauvegarde" aria-label="Importer une sauvegarde">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15v3.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V15"/><path d="M12 14.5v-11"/><path d="M8 7.5l4-4 4 4"/></svg>
+          </button>
+        </div>
+        <img class="logo" src="logo.png" alt="Dévoreur">
+        <span class="version" id="version">v17</span>
+      </header>
 
-    </header>
-
-    <div class="filtres">
-      <div class="bascule" id="bascule-etat"></div>
-      <input class="champ-recherche" id="filtre-texte" type="search" placeholder="Chercher un nom, un mot, un tag…" autocomplete="off">
-      <div class="puces" id="puces-categories"></div>
-      <div class="villes" id="villes"></div>
+      <div class="filtres">
+        <div class="bascule" id="bascule-etat"></div>
+        <input class="champ-recherche" id="filtre-texte" type="search" placeholder="Chercher un nom, un mot, un tag…" autocomplete="off">
+        <div class="puces" id="puces-categories"></div>
+        <div class="villes" id="villes"></div>
+      </div>
     </div>
 
     <div class="feuille">
@@ -969,16 +998,12 @@
       <div class="liste" id="liste"></div>
     </div>
 
-    <footer class="pied">
-      <button class="bouton-principal" id="btn-ajouter">Ajouter une adresse</button>
-      <button class="bouton-icone" id="btn-export" title="Exporter mes adresses" aria-label="Exporter mes adresses">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15v3.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V15"/><path d="M12 3.5v11"/><path d="M8 10.5l4 4 4-4"/></svg>
-      </button>
-      <button class="bouton-icone" id="btn-import" title="Importer une sauvegarde" aria-label="Importer une sauvegarde">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15v3.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V15"/><path d="M12 14.5v-11"/><path d="M8 7.5l4-4 4 4"/></svg>
-      </button>
-      <input type="file" id="fichier-import" accept="application/json" hidden>
-    </footer>
+    <button class="flottant" id="btn-ajouter" aria-label="Ajouter une adresse" title="Ajouter une adresse">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+    </button>
+
+    <input type="file" id="fichier-import" accept="application/json" hidden>
+
   </aside>
 
   <div class="carte-zone">
