@@ -1,17 +1,16 @@
-/* Carte des tables — fonctionnement hors connexion.
-   Change le numéro de version ci-dessous après chaque modification
-   de l'application, pour forcer la mise à jour sur ton téléphone. */
+/* Dévoreur Explorer — fonctionnement hors connexion.
+   Change le numéro de version ci-dessous après chaque modification. */
 
-var VERSION = 'tables-v8';
+var VERSION = 'tables-v10';
 
 var COQUILLE = [
   './',
   './index.html',
   './manifest.webmanifest',
+  './logo.png',
   './icone-192.png',
   './icone-512.png',
   './icone-180.png',
-  './logo.png',
   'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css',
   'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js',
   'https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700&display=swap'
@@ -20,7 +19,6 @@ var COQUILLE = [
 self.addEventListener('install', function (e) {
   e.waitUntil(
     caches.open(VERSION).then(function (cache) {
-      // addAll échoue en bloc si une seule ressource manque : on tolère les absences
       return Promise.all(COQUILLE.map(function (url) {
         return cache.add(url).catch(function () {});
       }));
@@ -41,12 +39,31 @@ self.addEventListener('activate', function (e) {
 self.addEventListener('fetch', function (e) {
   var url = e.request.url;
 
-  // Recherche de lieux : jamais de cache, ça doit être frais ou échouer proprement
   if (url.indexOf('photon.komoot.io') !== -1 || url.indexOf('nominatim.openstreetmap.org') !== -1) {
     return;
   }
 
-  // Tuiles de carte : on sert le cache d'abord, sinon le réseau
+  var estPage = e.request.mode === 'navigate' ||
+                url.indexOf('index.html') !== -1 ||
+                url.indexOf('manifest.webmanifest') !== -1;
+
+  /* La page elle-même : le réseau d'abord, pour toujours avoir la dernière version.
+     Le cache ne sert que si la connexion manque. */
+  if (estPage) {
+    e.respondWith(
+      fetch(e.request).then(function (reponse) {
+        var copie = reponse.clone();
+        caches.open(VERSION).then(function (c) { c.put(e.request, copie); });
+        return reponse;
+      }).catch(function () {
+        return caches.match(e.request).then(function (r) {
+          return r || caches.match('./index.html');
+        });
+      })
+    );
+    return;
+  }
+
   if (url.indexOf('basemaps.cartocdn.com') !== -1) {
     e.respondWith(
       caches.match(e.request).then(function (r) {
@@ -60,7 +77,6 @@ self.addEventListener('fetch', function (e) {
     return;
   }
 
-  // Le reste : cache d'abord, réseau en secours
   e.respondWith(
     caches.match(e.request).then(function (r) {
       return r || fetch(e.request);

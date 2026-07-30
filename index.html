@@ -102,10 +102,21 @@
   /* ---------- entête ---------- */
 
   .entete {
+    position: relative;
     padding: calc(20px + env(safe-area-inset-top)) 22px 4px;
     flex: none;
     display: flex;
     justify-content: center;
+  }
+
+  .version {
+    position: absolute;
+    top: calc(8px + env(safe-area-inset-top));
+    right: 12px;
+    font-family: var(--label);
+    font-size: 11px;
+    color: var(--texte-doux);
+    opacity: .55;
   }
 
   .logo {
@@ -268,26 +279,32 @@
 
   .feuille-entete {
     flex: none;
-    padding: 16px 22px 12px;
+    padding: 17px 22px 14px;
+    border-bottom: 1px solid var(--ligne);
+    border-radius: 22px 22px 0 0;
+    background: var(--surface);
     font-family: var(--label);
     font-weight: 600;
-    font-size: 14px;
+    font-size: 15px;
     color: var(--texte);
     display: flex;
-    align-items: baseline;
-    gap: 8px;
+    align-items: center;
+    gap: 9px;
   }
   .feuille-entete .nombre {
     font-weight: 500;
-    font-size: 13px;
+    font-size: 12.5px;
     color: var(--texte-doux);
+    background: var(--surface-2);
+    padding: 3px 10px;
+    border-radius: 999px;
   }
 
   .liste {
     flex: 1 1 auto;
     overflow-y: auto;
     min-height: 0;
-    padding: 0 0 90px;
+    padding: 6px 0 90px;
   }
 
   .fiche {
@@ -819,6 +836,7 @@
   <aside class="panneau">
     <header class="entete">
       <img class="logo" src="logo.png" alt="Dévoreur Explorer">
+      <span class="version" id="version">v10</span>
 
     </header>
 
@@ -931,7 +949,7 @@
     <div class="groupe">
       <span class="etiq">Existantes</span>
       <div class="liste-cats" id="liste-cats"></div>
-      <div class="aide">Supprimer une catégorie ne supprime aucune adresse : elles basculent dans la première catégorie restante.</div>
+      <div class="aide">Le chiffre indique le nombre d'adresses rangées dans chaque catégorie. Supprimer une catégorie ne supprime aucune adresse : elles basculent dans la première catégorie restante.</div>
     </div>
 
     <div class="groupe">
@@ -1055,7 +1073,8 @@
 
       var compte = document.createElement('span');
       compte.className = 'compte';
-      compte.textContent = n === 0 ? '—' : n;
+      compte.textContent = n;
+      if (n === 0) compte.style.opacity = '.45';
       ligne.appendChild(compte);
 
       var x = document.createElement('button');
@@ -1535,6 +1554,7 @@
     if (villeActive !== null && villes[villeActive]) titre = villes[villeActive].nom;
     document.getElementById('feuille-entete').innerHTML =
       echapper(titre) + '<span class="nombre">' + n + (n > 1 ? ' adresses' : ' adresse') + '</span>';
+    document.getElementById('version').textContent = 'v10';
   }
 
   /* ---------------------------------------------------------------
