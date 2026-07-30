@@ -80,6 +80,18 @@
 
   /* ---------- ossature ---------- */
 
+  .lancement {
+    position: fixed;
+    inset: 0;
+    z-index: 5000;
+    display: grid;
+    place-items: center;
+    background: linear-gradient(158deg, #4B1D78 0%, #34155F 45%, #230C40 100%);
+    transition: opacity .45s ease;
+  }
+  .lancement img { width: 62%; max-width: 300px; height: auto; }
+  .lancement.parti { opacity: 0; pointer-events: none; }
+
   .app {
     display: grid;
     grid-template-columns: 380px 1fr;
@@ -124,6 +136,13 @@
     width: 100%;
     max-width: 230px;
     height: auto;
+  }
+
+  [data-theme="sombre"] .logo {
+    background: linear-gradient(158deg, #F7D3F2 0%, #E6CDF7 42%, #B4C1FE 100%);
+    padding: 12px 16px;
+    border-radius: 20px;
+    max-width: 250px;
   }
 
 
@@ -805,6 +824,33 @@
 
   .onglets { display: none; }
 
+  .languette {
+    display: none;
+    position: fixed;
+    left: 0;
+    top: 46%;
+    z-index: 1000;
+    width: 42px;
+    height: 62px;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px 0 0;
+    border: 0;
+    border-radius: 0 999px 999px 0;
+    background: linear-gradient(120deg, #6E2BB0 0%, #4B1D78 100%);
+    box-shadow: 0 4px 16px rgba(42,17,69,.4);
+    transition: transform .16s;
+  }
+  .languette:active { transform: scale(.94); }
+  .languette::after {
+    content: '';
+    position: absolute;
+    right: 7px;
+    width: 3px; height: 26px;
+    border-radius: 2px;
+    background: rgba(255,255,255,.35);
+  }
+
   @media (max-width: 860px) {
     .app { grid-template-columns: 1fr; grid-template-rows: 1fr; }
 
@@ -815,6 +861,7 @@
       z-index: 800;
     }
     .app[data-vue="carte"] .panneau { display: none; }
+    .app[data-vue="carte"] .languette { display: flex; }
 
     .carte-zone { grid-row: 1; }
 
@@ -852,12 +899,16 @@
   }
 </style>
 
+<div class="lancement" id="lancement">
+  <img src="logo.png" alt="Dévoreur">
+</div>
+
 <div class="app" id="app" data-vue="carte">
 
   <aside class="panneau">
     <header class="entete">
       <img class="logo" src="logo.png" alt="Dévoreur Explorer">
-      <span class="version" id="version">v13</span>
+      <span class="version" id="version">v14</span>
 
     </header>
 
@@ -894,9 +945,21 @@
     <div class="bandeau-pointage" id="bandeau-pointage">Clique sur la carte pour poser le point</div>
   </div>
 
+  <button class="languette" id="languette" aria-label="Ouvrir mes adresses">
+    <svg viewBox="0 0 64 64" width="27" height="27" aria-hidden="true">
+      <path d="M20 22 L11 12 Q9 11 9 14 L11 24 Z" fill="#C24DE8"/>
+      <path d="M20 42 L11 52 Q9 53 9 50 L11 40 Z" fill="#C24DE8"/>
+      <path d="M16 23 Q36 20 46 24 Q56 28 60 32 Q56 36 46 40 Q36 44 16 41 Q12 32 16 23 Z" fill="#FFE7DA"/>
+      <path d="M16 23 Q36 20 46 24 Q52 26 56 29 Q40 30 16 30 Q15 26 16 23 Z" fill="#FFFFFF"/>
+      <circle cx="40" cy="32" r="6" fill="#4B1D78"/>
+      <circle cx="40" cy="32" r="3.4" fill="#E7568F"/>
+      <path d="M4 26 h6 M1 32 h9 M4 38 h6" stroke="#FF9A82" stroke-width="3.4" stroke-linecap="round" fill="none"/>
+    </svg>
+  </button>
+
   <nav class="onglets">
-    <button class="onglet" id="onglet-carte" aria-pressed="true">Carte</button>
     <button class="onglet" id="onglet-liste" aria-pressed="false">Mes adresses</button>
+    <button class="onglet" id="onglet-carte" aria-pressed="true">Carte</button>
   </nav>
 </div>
 
@@ -1728,7 +1791,7 @@
     }
     document.getElementById('feuille-entete').innerHTML =
       echapper(titre) + '<span class="nombre">' + n + (n > 1 ? ' adresses' : ' adresse') + '</span>';
-    document.getElementById('version').textContent = 'v13';
+    document.getElementById('version').textContent = 'v14';
   }
 
   /* ---------------------------------------------------------------
@@ -2100,6 +2163,34 @@
     minuterieAuto = setTimeout(function () { afficherPropositions(v); }, 320);
   });
 
+  function ouvrirListe() {
+    document.getElementById('app').setAttribute('data-vue', 'liste');
+    majOnglets();
+  }
+
+  document.getElementById('languette').addEventListener('click', ouvrirListe);
+
+  /* Glissement depuis le bord gauche, comme sur les applications natives. */
+  (function () {
+    var depart = null;
+    document.addEventListener('touchstart', function (e) {
+      if (document.getElementById('app').getAttribute('data-vue') !== 'carte') return;
+      var t = e.touches[0];
+      depart = (t.clientX < 30) ? { x: t.clientX, y: t.clientY } : null;
+    }, { passive: true });
+
+    document.addEventListener('touchmove', function (e) {
+      if (!depart) return;
+      var t = e.touches[0];
+      if (t.clientX - depart.x > 55 && Math.abs(t.clientY - depart.y) < 45) {
+        depart = null;
+        ouvrirListe();
+      }
+    }, { passive: true });
+
+    document.addEventListener('touchend', function () { depart = null; }, { passive: true });
+  })();
+
   document.getElementById('onglet-carte').addEventListener('click', function () {
     document.getElementById('app').setAttribute('data-vue', 'carte');
     majOnglets();
@@ -2138,6 +2229,13 @@
   appliquerTheme();
   appliquerFond();
 
+  function rangerLancement() {
+    var e = document.getElementById('lancement');
+    if (!e) return;
+    e.classList.add('parti');
+    setTimeout(function () { e.style.display = 'none'; }, 500);
+  }
+
   reparerVilles();
 
   charger().then(function () {
@@ -2145,7 +2243,10 @@
     cadrer();
     if (window.innerWidth > 860) document.getElementById('app').setAttribute('data-vue', 'liste');
     majOnglets();
+    setTimeout(rangerLancement, 700);
   });
+
+  setTimeout(rangerLancement, 2600);
 
 })();
 
