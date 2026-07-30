@@ -2,7 +2,7 @@
    Change le numéro de version ci-dessous après chaque modification
    de l'application, pour forcer la mise à jour sur ton téléphone. */
 
-var VERSION = 'tables-v1';
+var VERSION = 'tables-v3';
 
 var COQUILLE = [
   './',
@@ -12,7 +12,8 @@ var COQUILLE = [
   './icone-512.png',
   './icone-180.png',
   'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css',
-  'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js'
+  'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js',
+  'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap'
 ];
 
 self.addEventListener('install', function (e) {
@@ -45,7 +46,7 @@ self.addEventListener('fetch', function (e) {
   }
 
   // Tuiles de carte : on sert le cache d'abord, sinon le réseau
-  if (url.indexOf('tile.openstreetmap.org') !== -1) {
+  if (url.indexOf('basemaps.cartocdn.com') !== -1) {
     e.respondWith(
       caches.match(e.request).then(function (r) {
         return r || fetch(e.request).then(function (reponse) {
