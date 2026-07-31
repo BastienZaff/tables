@@ -985,7 +985,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v19</span>
+        <span class="version" id="version">v20</span>
       </header>
 
       <div class="filtres">
@@ -1182,7 +1182,7 @@
 
   var lieux = [];
   var filtreTexte = '';
-  var filtresCategories = [];   // tableau vide = « Tout » ; sinon, un lieu doit avoir TOUTES les catégories cochées
+  var filtresCategories = [];   // tableau vide = « Tout » ; sinon, un lieu doit avoir AU MOINS UNE des catégories cochées
   var filtreEtat = 'tout';
   var villes = [];
   var villesActives = [];
@@ -1583,9 +1583,11 @@
       if (filtreEtat === 'teste' && !l.note) return false;
       if (filtresCategories.length > 0) {
         var catsLieu = l.categories || [];
+        var auMoinsUne = false;
         for (var m = 0; m < filtresCategories.length; m++) {
-          if (catsLieu.indexOf(filtresCategories[m]) === -1) return false;
+          if (catsLieu.indexOf(filtresCategories[m]) !== -1) { auMoinsUne = true; break; }
         }
+        if (!auMoinsUne) return false;
       }
 
       if (villesActives.length > 0) {
@@ -1624,7 +1626,7 @@
       var b = document.createElement('button');
       b.className = 'puce';
       b.setAttribute('aria-pressed', actif ? 'true' : 'false');
-      if (actif && c.id !== 'tout') b.style.background = teinte;
+      if (actif) b.style.background = teinte;
 
       if (c.id !== 'tout') {
         var pt = document.createElement('span');
