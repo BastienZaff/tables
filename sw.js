@@ -1,7 +1,7 @@
 /* Dévoreur Explorer — fonctionnement hors connexion.
    Change le numéro de version ci-dessous après chaque modification. */
 
-var VERSION = 'tables-v22';
+var VERSION = 'tables-v23';
 
 var COQUILLE = [
   './',
