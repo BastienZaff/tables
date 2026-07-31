@@ -985,7 +985,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v18</span>
+        <span class="version" id="version">v19</span>
       </header>
 
       <div class="filtres">
@@ -1074,8 +1074,9 @@
     </div>
 
     <div class="groupe">
-      <label class="etiq" for="champ-categorie">Catégorie</label>
-      <select class="liste-deroulante" id="champ-categorie"></select>
+      <span class="etiq">Catégories</span>
+      <div class="puces" id="champ-categorie"></div>
+      <div class="aide">Touche-en plusieurs si le lieu en mérite plus d'une, par exemple Restaurant et Fast food.</div>
     </div>
 
     <div class="groupe">
@@ -1181,7 +1182,7 @@
 
   var lieux = [];
   var filtreTexte = '';
-  var filtreCategorie = 'tout';
+  var filtresCategories = [];   // tableau vide = « Tout » ; sinon, un lieu doit avoir TOUTES les catégories cochées
   var filtreEtat = 'tout';
   var villes = [];
   var villesActives = [];
@@ -1226,6 +1227,15 @@
     return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1-x));
   }
 
+  /* Anciennes sauvegardes : un lieu n'avait qu'une seule catégorie (l.categorie).
+     On la transforme en tableau (l.categories) sans rien perdre. */
+  function migrerLieu(l) {
+    if (l && !Array.isArray(l.categories)) {
+      l.categories = l.categorie ? [l.categorie] : ['autre'];
+    }
+    return l;
+  }
+
   function categorie(id) {
     for (var i = 0; i < CATEGORIES.length; i++) {
       if (CATEGORIES[i].id === id) return CATEGORIES[i];
@@ -1242,7 +1252,7 @@
     zone.innerHTML = '';
 
     CATEGORIES.forEach(function (c, i) {
-      var n = lieux.filter(function (l) { return l.categorie === c.id; }).length;
+      var n = lieux.filter(function (l) { return (l.categories || []).indexOf(c.id) !== -1; }).length;
 
       var ligne = document.createElement('div');
       ligne.className = 'ligne-cat';
@@ -1335,13 +1345,19 @@
   function retirerCat(i) {
     if (CATEGORIES.length <= 1) { annoncer('Il faut au moins une catégorie.'); return; }
     var c = CATEGORIES[i];
-    var n = lieux.filter(function (l) { return l.categorie === c.id; }).length;
+    var n = lieux.filter(function (l) { return (l.categories || []).indexOf(c.id) !== -1; }).length;
     if (n > 0 && !confirm('Supprimer « ' + c.nom + ' » ? Les ' + n + ' adresses concernées changeront de catégorie.')) return;
 
     CATEGORIES.splice(i, 1);
     var repli = CATEGORIES[0].id;
-    lieux.forEach(function (l) { if (l.categorie === c.id) l.categorie = repli; });
-    if (filtreCategorie === c.id) filtreCategorie = 'tout';
+    lieux.forEach(function (l) {
+      var pos = (l.categories || []).indexOf(c.id);
+      if (pos === -1) return;
+      l.categories.splice(pos, 1);
+      if (l.categories.indexOf(repli) === -1) l.categories.push(repli);
+    });
+    var posFiltre = filtresCategories.indexOf(c.id);
+    if (posFiltre !== -1) filtresCategories.splice(posFiltre, 1);
 
     enregistrerCats();
     enregistrer();
@@ -1400,7 +1416,7 @@
       try {
         var brut = localStorage.getItem(CLE);
         var d = brut ? JSON.parse(brut) : [];
-        lieux = Array.isArray(d) ? d : [];
+        lieux = (Array.isArray(d) ? d : []).map(migrerLieu);
       } catch (e) {
         lieux = [];
       }
@@ -1510,7 +1526,7 @@
 
     visibles.forEach(function (l) {
       if (typeof l.lat !== 'number' || typeof l.lng !== 'number') return;
-      var c = categorie(l.categorie);
+      var c = categorie((l.categories || [])[0]);
 
       var icone = L.divIcon({
         className: '',
@@ -1565,7 +1581,12 @@
     return lieux.filter(function (l) {
       if (filtreEtat === 'atester' && l.note) return false;
       if (filtreEtat === 'teste' && !l.note) return false;
-      if (filtreCategorie !== 'tout' && l.categorie !== filtreCategorie) return false;
+      if (filtresCategories.length > 0) {
+        var catsLieu = l.categories || [];
+        for (var m = 0; m < filtresCategories.length; m++) {
+          if (catsLieu.indexOf(filtresCategories[m]) === -1) return false;
+        }
+      }
 
       if (villesActives.length > 0) {
         var gLieu = groupe(departement(l.cp || codePostal(l.adresse)));
@@ -1597,13 +1618,13 @@
 
     zone.innerHTML = '';
     choix.forEach(function (c) {
-      var actif = filtreCategorie === c.id;
+      var actif = c.id === 'tout' ? filtresCategories.length === 0 : filtresCategories.indexOf(c.id) !== -1;
       var teinte = c.couleur || '#4B1D78';
 
       var b = document.createElement('button');
       b.className = 'puce';
       b.setAttribute('aria-pressed', actif ? 'true' : 'false');
-      if (actif) b.style.background = teinte;
+      if (actif && c.id !== 'tout') b.style.background = teinte;
 
       if (c.id !== 'tout') {
         var pt = document.createElement('span');
@@ -1613,7 +1634,13 @@
       }
       b.appendChild(document.createTextNode(c.nom));
       b.addEventListener('click', function () {
-        filtreCategorie = c.id;
+        if (c.id === 'tout') {
+          filtresCategories = [];
+        } else {
+          var pos = filtresCategories.indexOf(c.id);
+          if (pos === -1) filtresCategories.push(c.id);
+          else filtresCategories.splice(pos, 1);
+        }
         rafraichir();
       });
       zone.appendChild(b);
@@ -1830,7 +1857,8 @@
     }
 
     visibles.forEach(function (l) {
-      var c = categorie(l.categorie);
+      var cats = (l.categories && l.categories.length ? l.categories : ['autre']).map(categorie);
+      var c = cats[0];
       var f = document.createElement('button');
       f.className = 'fiche';
 
@@ -1838,8 +1866,10 @@
               '<span class="pastille" style="background:' + c.couleur + '"></span>' +
               '<span class="fiche-nom">' + echapper(l.nom) + '</span></div>';
       if (l.adresse) h += '<div class="fiche-adresse">' + echapper(l.adresse) + '</div>';
-      h += '<div class="fiche-bas">' + rangFourchettes(l.note) +
-           '<span class="etiquette categorie" style="background:' + c.couleur + '">' + echapper(c.nom) + '</span>';
+      h += '<div class="fiche-bas">' + rangFourchettes(l.note);
+      cats.forEach(function (cc) {
+        h += '<span class="etiquette categorie" style="background:' + cc.couleur + '">' + echapper(cc.nom) + '</span>';
+      });
       (l.tags || []).forEach(function (t) {
         h += '<span class="etiquette">' + echapper(t) + '</span>';
       });
@@ -1973,7 +2003,7 @@
             brouillon.adresse = r.adresse;
             brouillon.lat = r.lat;
             brouillon.lng = r.lng;
-            if (!enEdition) brouillon.categorie = r.categorie;
+            if (!enEdition) brouillon.categories = [r.categorie];
             zone.innerHTML = '';
             document.getElementById('champ-auto').value = '';
             remplirVolet();
@@ -1996,7 +2026,7 @@
       identifiant: id(),
       nom: '', adresse: '',
       lat: null, lng: null,
-      categorie: 'restaurant',
+      categories: ['restaurant'],
       note: 0, commentaire: '', tags: []
     };
   }
@@ -2046,13 +2076,31 @@
     document.getElementById('champ-commentaire').value = brouillon.commentaire || '';
     document.getElementById('champ-tags').value = (brouillon.tags || []).join(', ');
 
-    var sel = document.getElementById('champ-categorie');
-    sel.innerHTML = '';
+    var zoneCats = document.getElementById('champ-categorie');
+    zoneCats.innerHTML = '';
     CATEGORIES.forEach(function (c) {
-      var o = document.createElement('option');
-      o.value = c.id; o.textContent = c.nom;
-      if (c.id === brouillon.categorie) o.selected = true;
-      sel.appendChild(o);
+      var actif = (brouillon.categories || []).indexOf(c.id) !== -1;
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'puce';
+      b.setAttribute('aria-pressed', actif ? 'true' : 'false');
+      if (actif) b.style.background = c.couleur;
+
+      var pt = document.createElement('span');
+      pt.className = 'point';
+      pt.style.background = c.couleur;
+      b.appendChild(pt);
+      b.appendChild(document.createTextNode(c.nom));
+
+      b.addEventListener('click', function () {
+        if (!brouillon.categories) brouillon.categories = [];
+        var pos = brouillon.categories.indexOf(c.id);
+        if (pos === -1) brouillon.categories.push(c.id);
+        else if (brouillon.categories.length > 1) brouillon.categories.splice(pos, 1);
+        else { annoncer('Il faut garder au moins une catégorie.'); return; }
+        remplirVolet();
+      });
+      zoneCats.appendChild(b);
     });
 
     var zone = document.getElementById('note-choix');
@@ -2089,7 +2137,6 @@
     brouillon.nom = document.getElementById('champ-nom').value.trim();
     brouillon.adresse = document.getElementById('champ-adresse').value.trim();
     brouillon.cp = codePostal(brouillon.adresse);
-    brouillon.categorie = document.getElementById('champ-categorie').value;
     brouillon.commentaire = document.getElementById('champ-commentaire').value.trim();
     brouillon.tags = document.getElementById('champ-tags').value
       .split(',').map(function (t) { return t.trim(); }).filter(Boolean);
@@ -2100,6 +2147,7 @@
 
     if (!brouillon.nom) { annoncer('Il manque le nom.'); document.getElementById('champ-nom').focus(); return; }
     if (typeof brouillon.lat !== 'number') { annoncer('Il manque le point sur la carte. Utilise « Poser à la main ».'); return; }
+    if (!brouillon.categories || brouillon.categories.length === 0) { annoncer('Choisis au moins une catégorie.'); return; }
 
     if (enEdition) {
       for (var i = 0; i < lieux.length; i++) {
@@ -2172,7 +2220,7 @@
         lieux.forEach(function (l) { connus[l.identifiant] = true; });
         var ajoutes = 0;
         d.forEach(function (l) {
-          if (l && l.identifiant && !connus[l.identifiant]) { lieux.push(l); ajoutes++; }
+          if (l && l.identifiant && !connus[l.identifiant]) { lieux.push(migrerLieu(l)); ajoutes++; }
         });
         enregistrer();
         rafraichir();
