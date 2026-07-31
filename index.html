@@ -676,6 +676,32 @@
   .bouton-fantome:hover { color: var(--texte); border-color: var(--ligne-fort); }
   .bouton-fantome.danger:hover { color: var(--danger); border-color: var(--danger); }
 
+  .choix-source {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: var(--surface-2);
+    border: 0;
+    border-radius: 16px;
+    padding: 14px 16px;
+    font-family: var(--label);
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--texte);
+    margin-bottom: 8px;
+    transition: filter .15s, transform .12s;
+  }
+  .choix-source:hover { filter: brightness(.97); }
+  .choix-source:active { transform: scale(.98); }
+  .choix-source .sous-titre {
+    display: block;
+    font-family: var(--body);
+    font-weight: 400;
+    font-size: 12.5px;
+    color: var(--texte-doux);
+    margin-top: 3px;
+  }
+
   .fermer {
     background: transparent; border: 0;
     color: var(--texte-doux);
@@ -985,7 +1011,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v20</span>
+        <span class="version" id="version">v21</span>
       </header>
 
       <div class="filtres">
@@ -1007,6 +1033,9 @@
     </button>
 
     <input type="file" id="fichier-import" accept="application/json" hidden>
+    <input type="file" id="fichier-mapstr-geojson" accept=".geojson,.json,application/geo+json,application/json" hidden>
+    <input type="file" id="fichier-mapstr-csv" accept=".csv,text/csv" hidden>
+    <input type="file" id="fichier-google" accept=".json,.csv,application/json,text/csv" hidden>
 
   </aside>
 
@@ -1130,6 +1159,34 @@
 
   <div class="volet-pied">
     <button class="bouton-principal" id="cat-ajouter">Ajouter la catégorie</button>
+  </div>
+</section>
+
+<section class="volet" id="volet-import" aria-hidden="true">
+  <div class="volet-entete">
+    <span class="volet-titre">Importer des adresses</span>
+    <button class="fermer" id="import-fermer" aria-label="Fermer">×</button>
+  </div>
+
+  <div class="volet-corps">
+    <div class="groupe">
+      <span class="etiq">D'où viennent ces adresses ?</span>
+    </div>
+
+    <div class="groupe">
+      <button class="choix-source" type="button" id="import-source-devoreur">
+        Une sauvegarde Dévoreur
+        <span class="sous-titre">Le fichier .json téléchargé avec le bouton ↓ de ce panneau.</span>
+      </button>
+      <button class="choix-source" type="button" id="import-source-mapstr">
+        Mapstr
+        <span class="sous-titre">Le fichier .geojson exporté depuis Mapstr, et si tu l'as, le .csv pour récupérer tes notes.</span>
+      </button>
+      <button class="choix-source" type="button" id="import-source-google">
+        Google Maps
+        <span class="sous-titre">Le fichier récupéré via Google Takeout. Format encore expérimental.</span>
+      </button>
+    </div>
   </div>
 </section>
 
@@ -2236,6 +2293,260 @@
   }
 
   /* ---------------------------------------------------------------
+     Import Mapstr et Google Maps
+  --------------------------------------------------------------- */
+
+  /* Minuscules et sans accents, pour comparer des noms sans se soucier
+     de la casse ou des accents. */
+  function normaliser(t) {
+    return String(t || '').trim().toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  }
+
+  /* Petit lecteur de CSV maison (pas de bibliothèque : un seul fichier).
+     Gère les champs entre guillemets qui contiennent des virgules. */
+  function lireCSV(texte) {
+    var lignes = [];
+    var ligne = [];
+    var champ = '';
+    var dansGuillemets = false;
+
+    for (var i = 0; i < texte.length; i++) {
+      var car = texte[i];
+      if (dansGuillemets) {
+        if (car === '"') {
+          if (texte[i + 1] === '"') { champ += '"'; i++; }
+          else dansGuillemets = false;
+        } else champ += car;
+      } else {
+        if (car === '"') dansGuillemets = true;
+        else if (car === ',') { ligne.push(champ); champ = ''; }
+        else if (car === '\r') { /* ignoré */ }
+        else if (car === '\n') { ligne.push(champ); champ = ''; lignes.push(ligne); ligne = []; }
+        else champ += car;
+      }
+    }
+    if (champ !== '' || ligne.length) { ligne.push(champ); lignes.push(ligne); }
+    if (!lignes.length) return [];
+
+    var entetes = lignes[0];
+    return lignes.slice(1)
+      .filter(function (l) { return l.length > 1 || l[0]; })
+      .map(function (l) {
+        var o = {};
+        entetes.forEach(function (e, idx) { o[e] = l[idx] !== undefined ? l[idx] : ''; });
+        return o;
+      });
+  }
+
+  /* Mapstr mélange catégorie et tag libre dans un même champ "tags".
+     On reconnaît ceux qui correspondent à une de nos catégories ; le
+     reste devient un tag libre. */
+  var CATS_MAPSTR = {
+    'restaurant': 'restaurant',
+    'fastfood': 'fastfood',
+    'fast food': 'fastfood',
+    'boulangerie': 'boulangerie',
+    'cafe': 'coffee',
+    'coffee': 'coffee',
+    'coffee shop': 'coffee',
+    'bar': 'bar'
+  };
+
+  /* Repli sur l'icône Mapstr quand aucun tag ne correspond à une catégorie connue. */
+  var ICONES_MAPSTR = {
+    'restaurant': 'restaurant', 'pizza': 'restaurant',
+    'cafe': 'coffee',
+    'bakery': 'boulangerie',
+    'bar': 'bar', 'beer': 'bar', 'nightclub': 'bar',
+    'fastfood': 'fastfood'
+  };
+
+  function categoriesDepuisMapstr(tags, icone) {
+    var cats = [];
+    (tags || []).forEach(function (t) {
+      var id2 = CATS_MAPSTR[normaliser(t && t.name)];
+      if (id2 && cats.indexOf(id2) === -1 && connue(id2) === id2) cats.push(id2);
+    });
+    if (cats.length === 0) {
+      var repli = ICONES_MAPSTR[normaliser(icone)];
+      cats.push(repli && connue(repli) === repli ? repli : 'autre');
+    }
+    return cats;
+  }
+
+  function tagsLibresDepuisMapstr(tags) {
+    return (tags || [])
+      .map(function (t) { return (t && t.name || '').trim(); })
+      .filter(function (nom) {
+        var n = normaliser(nom);
+        return nom && !CATS_MAPSTR[n] && n !== 'a essayer';
+      });
+  }
+
+  function importerMapstr(fichierGeojson, fichierCsv) {
+    var lecteurGeo = new FileReader();
+    lecteurGeo.onload = function () {
+      var geo;
+      try { geo = JSON.parse(lecteurGeo.result); } catch (e) {
+        annoncer('Le fichier .geojson de Mapstr est illisible.'); return;
+      }
+      if (!geo || !Array.isArray(geo.features)) {
+        annoncer('Ce fichier ne ressemble pas à un export Mapstr (.geojson).'); return;
+      }
+
+      function poursuivre(csvTexte) {
+        var parNom = {};
+        if (csvTexte) {
+          lireCSV(csvTexte).forEach(function (r) {
+            if (r.name) parNom[normaliser(r.name)] = r;
+          });
+        }
+
+        var connus = {};
+        lieux.forEach(function (l) { connus[normaliser(l.nom) + '|' + normaliser(l.adresse)] = true; });
+
+        var ajoutes = 0, doublons = 0, sansPosition = 0;
+
+        geo.features.forEach(function (f) {
+          var p = (f && f.properties) || {};
+          var g = f && f.geometry;
+          if (!g || !Array.isArray(g.coordinates) || typeof g.coordinates[0] !== 'number') { sansPosition++; return; }
+
+          var nom = p.name || 'Sans nom';
+          var adresse = p.address || '';
+          var cle = normaliser(nom) + '|' + normaliser(adresse);
+          if (connus[cle]) { doublons++; return; }
+
+          var lig = parNom[normaliser(nom)];
+          var note = 0;
+          if (lig && lig.rating && lig.rating.trim()) {
+            note = Math.round(parseFloat(lig.rating.replace(',', '.')));
+            note = Math.max(1, Math.min(5, note || 1));
+          }
+
+          lieux.push({
+            identifiant: id(),
+            nom: nom,
+            adresse: adresse,
+            cp: codePostal(adresse),
+            lat: g.coordinates[1],
+            lng: g.coordinates[0],
+            categories: categoriesDepuisMapstr(p.tags, p.icon),
+            note: note,
+            commentaire: lig && lig.userComment ? lig.userComment.trim() : '',
+            tags: tagsLibresDepuisMapstr(p.tags)
+          });
+          connus[cle] = true;
+          ajoutes++;
+        });
+
+        enregistrer();
+        rafraichir();
+        cadrer();
+
+        var msg = ajoutes + (ajoutes > 1 ? ' adresses importées depuis Mapstr.' : ' adresse importée depuis Mapstr.');
+        if (doublons) msg += ' ' + doublons + ' déjà présentes, ignorées.';
+        if (sansPosition) msg += ' ' + sansPosition + ' sans position, ignorées.';
+        annoncer(msg);
+      }
+
+      if (fichierCsv) {
+        var lecteurCsv = new FileReader();
+        lecteurCsv.onload = function () { poursuivre(lecteurCsv.result); };
+        lecteurCsv.onerror = function () { poursuivre(null); };
+        lecteurCsv.readAsText(fichierCsv);
+      } else {
+        poursuivre(null);
+      }
+    };
+    lecteurGeo.onerror = function () { annoncer('Impossible de lire le fichier .geojson.'); };
+    lecteurGeo.readAsText(fichierGeojson);
+  }
+
+  /* Import Google Maps (Takeout) : le format exact varie selon les versions
+     de Takeout, donc plusieurs formes sont essayées. Si rien ne correspond,
+     on le dit clairement plutôt que d'importer n'importe quoi. */
+  function importerGoogle(fichier) {
+    var lecteur = new FileReader();
+    lecteur.onload = function () {
+      var data;
+      try { data = JSON.parse(lecteur.result); } catch (e) {
+        annoncer('Ce fichier n\'est pas au format attendu (JSON). Les exports CSV de Google Maps ne contiennent en général pas de position : envoie-moi un extrait du fichier pour que j\'ajuste l\'import.');
+        return;
+      }
+
+      var features = Array.isArray(data && data.features) ? data.features : (Array.isArray(data) ? data : null);
+      if (!features) {
+        annoncer('Ce fichier ne correspond à aucun format Google Maps connu. Envoie-moi un extrait pour que je l\'ajuste.');
+        return;
+      }
+
+      var connus = {};
+      lieux.forEach(function (l) { connus[normaliser(l.nom) + '|' + normaliser(l.adresse)] = true; });
+
+      var ajoutes = 0, doublons = 0, sansPosition = 0;
+
+      features.forEach(function (f) {
+        var p = (f && f.properties) || f || {};
+        var loc = p.location || p.Location || {};
+        var nom = loc.name || p.name || p.title || p.Title || 'Sans nom';
+        var adresse = loc.address || p.address || '';
+
+        var lat, lng;
+        var g = f && f.geometry;
+        if (g && Array.isArray(g.coordinates)) { lng = g.coordinates[0]; lat = g.coordinates[1]; }
+        else if (loc.geo && typeof loc.geo.lat === 'number') { lat = loc.geo.lat; lng = loc.geo.lng; }
+        else if (typeof p.lat === 'number') { lat = p.lat; lng = p.lng; }
+
+        if (typeof lat !== 'number' || typeof lng !== 'number') { sansPosition++; return; }
+
+        var cle = normaliser(nom) + '|' + normaliser(adresse);
+        if (connus[cle]) { doublons++; return; }
+
+        lieux.push({
+          identifiant: id(),
+          nom: nom, adresse: adresse, cp: codePostal(adresse),
+          lat: lat, lng: lng,
+          categories: ['autre'],
+          note: 0, commentaire: '', tags: []
+        });
+        connus[cle] = true;
+        ajoutes++;
+      });
+
+      enregistrer();
+      rafraichir();
+      cadrer();
+
+      if (ajoutes === 0) {
+        annoncer(sansPosition
+          ? 'Aucune position trouvée dans ce fichier. Le format de Google a peut-être changé : envoie-moi un extrait pour que je l\'ajuste.'
+          : 'Rien à importer dans ce fichier.');
+        return;
+      }
+      var msg = ajoutes + (ajoutes > 1 ? ' adresses importées depuis Google Maps.' : ' adresse importée depuis Google Maps.');
+      if (doublons) msg += ' ' + doublons + ' déjà présentes, ignorées.';
+      if (sansPosition) msg += ' ' + sansPosition + ' sans position, ignorées.';
+      annoncer(msg);
+    };
+    lecteur.onerror = function () { annoncer('Impossible de lire ce fichier.'); };
+    lecteur.readAsText(fichier);
+  }
+
+  function ouvrirImport() {
+    document.getElementById('volet-import').classList.add('ouvert');
+    document.getElementById('volet-import').setAttribute('aria-hidden', 'false');
+    document.getElementById('voile').classList.add('ouvert');
+  }
+
+  function fermerImport() {
+    document.getElementById('volet-import').classList.remove('ouvert');
+    document.getElementById('volet-import').setAttribute('aria-hidden', 'true');
+    document.getElementById('voile').classList.remove('ouvert');
+  }
+
+  /* ---------------------------------------------------------------
      Onglets mobile
   --------------------------------------------------------------- */
 
@@ -2274,6 +2585,7 @@
   document.getElementById('voile').addEventListener('click', function () {
     fermerVolet();
     fermerCats();
+    fermerImport();
   });
   document.getElementById('btn-enregistrer').addEventListener('click', valider);
   document.getElementById('btn-supprimer').addEventListener('click', supprimer);
@@ -2286,12 +2598,55 @@
 
   document.getElementById('btn-export').addEventListener('click', exporter);
 
-  document.getElementById('btn-import').addEventListener('click', function () {
-    document.getElementById('fichier-import').click();
-  });
+  document.getElementById('btn-import').addEventListener('click', ouvrirImport);
+  document.getElementById('import-fermer').addEventListener('click', fermerImport);
 
   document.getElementById('fichier-import').addEventListener('change', function (e) {
     if (e.target.files[0]) importer(e.target.files[0]);
+    e.target.value = '';
+  });
+
+  document.getElementById('import-source-devoreur').addEventListener('click', function () {
+    fermerImport();
+    document.getElementById('fichier-import').click();
+  });
+
+  document.getElementById('import-source-mapstr').addEventListener('click', function () {
+    fermerImport();
+    document.getElementById('fichier-mapstr-geojson').click();
+  });
+
+  document.getElementById('fichier-mapstr-geojson').addEventListener('change', function (e) {
+    var fichierGeo = e.target.files[0];
+    e.target.value = '';
+    if (!fichierGeo) return;
+
+    var avecCsv = confirm('As-tu aussi un fichier .csv exporté par Mapstr ? Il permet de récupérer tes notes et commentaires.\n\nOK pour le choisir, Annuler pour importer sans.');
+    if (avecCsv) {
+      document.getElementById('fichier-mapstr-csv').dataset.enAttente = '1';
+      window._fichierMapstrGeo = fichierGeo;
+      document.getElementById('fichier-mapstr-csv').click();
+    } else {
+      importerMapstr(fichierGeo, null);
+    }
+  });
+
+  document.getElementById('fichier-mapstr-csv').addEventListener('change', function (e) {
+    var fichierCsv = e.target.files[0];
+    e.target.value = '';
+    var fichierGeo = window._fichierMapstrGeo;
+    window._fichierMapstrGeo = null;
+    if (!fichierGeo) return;
+    importerMapstr(fichierGeo, fichierCsv || null);
+  });
+
+  document.getElementById('import-source-google').addEventListener('click', function () {
+    fermerImport();
+    document.getElementById('fichier-google').click();
+  });
+
+  document.getElementById('fichier-google').addEventListener('change', function (e) {
+    if (e.target.files[0]) importerGoogle(e.target.files[0]);
     e.target.value = '';
   });
 
