@@ -241,6 +241,53 @@
     background: transparent;
   }
 
+  .ligne-date {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--pastille);
+    border-radius: 999px;
+    padding: 4px 6px 4px 15px;
+    margin-bottom: 7px;
+  }
+  .ligne-date input[type="date"] {
+    border: 0;
+    background: transparent;
+    font-family: var(--body);
+    font-size: 13.5px;
+    color: var(--texte);
+    flex: 1;
+    min-width: 0;
+  }
+  .ligne-date .croix {
+    display: grid;
+    place-items: center;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    color: var(--texte-doux);
+    font-size: 15px;
+    line-height: 1;
+    flex: none;
+    background: transparent;
+    border: 0;
+  }
+  .ligne-date .croix:hover { background: var(--pastille-forte); color: var(--danger); }
+
+  .date-ajouter {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 13px;
+    border-radius: 999px;
+    border: 1px dashed var(--ligne-fort);
+    background: transparent;
+    color: var(--texte-doux);
+    font-family: var(--label);
+    font-weight: 500;
+    font-size: 13px;
+    transition: filter .15s;
+  }
+  .date-ajouter:hover { filter: brightness(.96); color: var(--texte); border-color: var(--accent-ligne); }
+
   .invite-villes {
     width: 100%;
     padding: 13px 16px;
@@ -801,6 +848,7 @@
   .bulle-nom { font-family: var(--display); font-weight: 600; font-size: 16px; letter-spacing: 0; line-height: 1.25; }
   .bulle-adr { font-size: 11.5px; color: var(--texte-doux); margin-top: 4px; line-height: 1.4; }
   .bulle-mot { font-size: 12px; font-style: italic; margin-top: 7px; line-height: 1.45; }
+  .bulle-date { font-size: 11.5px; color: var(--texte-doux); margin-top: 4px; }
   .bulle-actions { display: flex; gap: 8px; margin-top: 11px; align-items: center; }
   .bulle-lien {
     font-family: var(--label);
@@ -926,6 +974,7 @@
       z-index: 800;
     }
     .app[data-vue="carte"] .panneau { display: none; }
+    .app[data-vue="liste"] .leaflet-control-zoom { display: none; }
 
     .feuille { margin-top: 10px; }
     .languette { display: flex; }
@@ -1004,7 +1053,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v30</span>
+        <span class="version" id="version">v31</span>
       </header>
 
       <div class="filtres">
@@ -1104,6 +1153,13 @@
     <div class="groupe">
       <span class="etiq">Ma note</span>
       <div class="note-choix" id="note-choix"></div>
+    </div>
+
+    <div class="groupe">
+      <span class="etiq">Mes dates</span>
+      <div id="dates-liste"></div>
+      <button class="date-ajouter" type="button" id="date-ajouter">+ Ajouter une date</button>
+      <div class="aide">La première se pose toute seule dès que tu mets une note. Ajoutes-en d'autres si tu y es retourné.</div>
     </div>
 
     <div class="groupe">
@@ -1317,11 +1373,13 @@
   }
 
   /* Anciennes sauvegardes : un lieu n'avait qu'une seule catégorie (l.categorie).
-     On la transforme en tableau (l.categories) sans rien perdre. */
+     On la transforme en tableau (l.categories) sans rien perdre. Idem pour les
+     dates de visite, absentes des lieux créés avant cette fonctionnalité. */
   function migrerLieu(l) {
     if (l && !Array.isArray(l.categories)) {
       l.categories = l.categorie ? [l.categorie] : ['autre'];
     }
+    if (l && !Array.isArray(l.dates)) l.dates = [];
     return l;
   }
 
@@ -1700,6 +1758,11 @@
     var h = '<div class="bulle-nom">' + echapper(l.nom) + '</div>';
     if (l.adresse) h += '<div class="bulle-adr">' + echapper(l.adresse) + '</div>';
     h += '<div style="margin-top:8px">' + rangFourchettes(l.note) + '</div>';
+    if (l.dates && l.dates.length === 1) {
+      h += '<div class="bulle-date">Visité le ' + formaterDateFR(l.dates[0]) + '</div>';
+    } else if (l.dates && l.dates.length > 1) {
+      h += '<div class="bulle-date">' + l.dates.length + ' visites</div>';
+    }
     if (l.commentaire) h += '<div class="bulle-mot">' + echapper(l.commentaire) + '</div>';
     h += '<div class="bulle-actions">' +
          '<a class="bulle-lien" href="' + lien + '" target="_blank" rel="noopener">Ouvrir dans Google Maps</a>' +
@@ -2181,8 +2244,23 @@
       nom: '', adresse: '',
       lat: null, lng: null,
       categories: ['restaurant'],
-      note: 0, commentaire: '', tags: []
+      note: 0, commentaire: '', tags: [], dates: []
     };
+  }
+
+  /* Aujourd'hui, au format AAAA-MM-JJ, en heure locale (pas UTC, pour éviter
+     de tomber sur la veille selon le fuseau horaire). */
+  function dateDuJour() {
+    var d = new Date();
+    var mois = String(d.getMonth() + 1).padStart(2, '0');
+    var jour = String(d.getDate()).padStart(2, '0');
+    return d.getFullYear() + '-' + mois + '-' + jour;
+  }
+
+  /* AAAA-MM-JJ -> JJ/MM/AAAA, pour l'affichage. */
+  function formaterDateFR(iso) {
+    var m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+    return m ? (m[3] + '/' + m[2] + '/' + m[1]) : '';
   }
 
   function ouvrirVolet() {
@@ -2276,10 +2354,40 @@
         b.setAttribute('aria-label', n + ' sur 5');
         b.setAttribute('aria-pressed', brouillon.note === n ? 'true' : 'false');
         b.innerHTML = fourchette(brouillon.note >= n, 19);
-        b.addEventListener('click', function () { brouillon.note = n; remplirVolet(); });
+        b.addEventListener('click', function () {
+          brouillon.note = n;
+          if (!brouillon.dates || brouillon.dates.length === 0) brouillon.dates = [dateDuJour()];
+          remplirVolet();
+        });
         zone.appendChild(b);
       })(i);
     }
+
+    var zoneDates = document.getElementById('dates-liste');
+    zoneDates.innerHTML = '';
+    (brouillon.dates || []).forEach(function (d, i) {
+      var ligne = document.createElement('div');
+      ligne.className = 'ligne-date';
+
+      var champ = document.createElement('input');
+      champ.type = 'date';
+      champ.value = d || '';
+      champ.addEventListener('change', function () { brouillon.dates[i] = champ.value; });
+      ligne.appendChild(champ);
+
+      var retirer = document.createElement('button');
+      retirer.type = 'button';
+      retirer.className = 'croix';
+      retirer.setAttribute('aria-label', 'Retirer cette date');
+      retirer.textContent = '×';
+      retirer.addEventListener('click', function () {
+        brouillon.dates.splice(i, 1);
+        remplirVolet();
+      });
+      ligne.appendChild(retirer);
+
+      zoneDates.appendChild(ligne);
+    });
 
     document.getElementById('aide-point').textContent =
       typeof brouillon.lat === 'number'
@@ -2540,7 +2648,8 @@
             categories: categoriesDepuisMapstr(p.tags, p.icon),
             note: note,
             commentaire: lig && lig.userComment ? lig.userComment.trim() : '',
-            tags: tagsLibresDepuisMapstr(p.tags)
+            tags: tagsLibresDepuisMapstr(p.tags),
+            dates: []
           });
           connus[cle] = lieux[lieux.length - 1];
           ajoutes++;
@@ -2615,7 +2724,7 @@
           nom: nom, adresse: adresse, cp: codePostal(adresse),
           lat: lat, lng: lng,
           categories: ['autre'],
-          note: 0, commentaire: '', tags: []
+          note: 0, commentaire: '', tags: [], dates: []
         });
         connus[cle] = true;
         ajoutes++;
@@ -2705,6 +2814,12 @@
   });
 
   document.getElementById('btn-ajouter').addEventListener('click', ajouter);
+  document.getElementById('date-ajouter').addEventListener('click', function () {
+    if (!brouillon) return;
+    if (!brouillon.dates) brouillon.dates = [];
+    brouillon.dates.push(dateDuJour());
+    remplirVolet();
+  });
   document.getElementById('btn-fermer').addEventListener('click', fermerVolet);
   document.getElementById('voile').addEventListener('click', function () {
     fermerVolet();
