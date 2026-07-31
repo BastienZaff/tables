@@ -509,6 +509,7 @@
   }
   .bouton-principal:hover { filter: brightness(1.08); }
   .bouton-principal:active { transform: scale(.98); }
+  .bouton-principal:disabled { opacity: .45; filter: none; }
 
   .bouton-icone {
     background: var(--pastille-forte);
@@ -1011,7 +1012,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v21</span>
+        <span class="version" id="version">v22</span>
       </header>
 
       <div class="filtres">
@@ -1183,10 +1184,34 @@
         <span class="sous-titre">Le fichier .geojson exporté depuis Mapstr, et si tu l'as, le .csv pour récupérer tes notes.</span>
       </button>
       <button class="choix-source" type="button" id="import-source-google">
-        Google Maps
-        <span class="sous-titre">Le fichier récupéré via Google Takeout. Format encore expérimental.</span>
-      </button>
     </div>
+  </div>
+</section>
+
+<section class="volet" id="volet-mapstr" aria-hidden="true">
+  <div class="volet-entete">
+    <span class="volet-titre">Importer depuis Mapstr</span>
+    <button class="fermer" id="mapstr-fermer" aria-label="Fermer">×</button>
+  </div>
+
+  <div class="volet-corps">
+    <div class="groupe">
+      <span class="etiq">1. Le fichier .geojson</span>
+      <div class="aide">Obligatoire : il contient la position de chaque lieu.</div>
+      <button class="bouton-fantome" type="button" id="mapstr-choisir-geojson">Choisir le fichier .geojson</button>
+      <div class="aide" id="mapstr-etat-geojson"></div>
+    </div>
+
+    <div class="groupe">
+      <span class="etiq">2. Le fichier .csv</span>
+      <div class="aide">Facultatif : il permet de récupérer tes notes et tes commentaires.</div>
+      <button class="bouton-fantome" type="button" id="mapstr-choisir-csv">Choisir le fichier .csv</button>
+      <div class="aide" id="mapstr-etat-csv"></div>
+    </div>
+  </div>
+
+  <div class="volet-pied">
+    <button class="bouton-principal" id="mapstr-lancer" disabled>Importer</button>
   </div>
 </section>
 
@@ -2534,6 +2559,23 @@
     lecteur.readAsText(fichier);
   }
 
+  function ouvrirMapstr() {
+    document.getElementById('volet-mapstr').classList.add('ouvert');
+    document.getElementById('volet-mapstr').setAttribute('aria-hidden', 'false');
+    document.getElementById('voile').classList.add('ouvert');
+  }
+
+  function fermerMapstr() {
+    document.getElementById('volet-mapstr').classList.remove('ouvert');
+    document.getElementById('volet-mapstr').setAttribute('aria-hidden', 'true');
+    document.getElementById('voile').classList.remove('ouvert');
+    document.getElementById('mapstr-etat-geojson').textContent = '';
+    document.getElementById('mapstr-etat-csv').textContent = '';
+    document.getElementById('mapstr-lancer').disabled = true;
+    mapstrGeojsonFichier = null;
+    mapstrCsvFichier = null;
+  }
+
   function ouvrirImport() {
     document.getElementById('volet-import').classList.add('ouvert');
     document.getElementById('volet-import').setAttribute('aria-hidden', 'false');
@@ -2586,6 +2628,7 @@
     fermerVolet();
     fermerCats();
     fermerImport();
+    fermerMapstr();
   });
   document.getElementById('btn-enregistrer').addEventListener('click', valider);
   document.getElementById('btn-supprimer').addEventListener('click', supprimer);
@@ -2613,31 +2656,43 @@
 
   document.getElementById('import-source-mapstr').addEventListener('click', function () {
     fermerImport();
+    ouvrirMapstr();
+  });
+
+  var mapstrGeojsonFichier = null;
+  var mapstrCsvFichier = null;
+
+  document.getElementById('mapstr-fermer').addEventListener('click', fermerMapstr);
+
+  document.getElementById('mapstr-choisir-geojson').addEventListener('click', function () {
     document.getElementById('fichier-mapstr-geojson').click();
   });
 
   document.getElementById('fichier-mapstr-geojson').addEventListener('change', function (e) {
-    var fichierGeo = e.target.files[0];
+    var f = e.target.files[0];
     e.target.value = '';
-    if (!fichierGeo) return;
+    if (!f) return;
+    mapstrGeojsonFichier = f;
+    document.getElementById('mapstr-etat-geojson').textContent = '✓ ' + f.name;
+    document.getElementById('mapstr-lancer').disabled = false;
+  });
 
-    var avecCsv = confirm('As-tu aussi un fichier .csv exporté par Mapstr ? Il permet de récupérer tes notes et commentaires.\n\nOK pour le choisir, Annuler pour importer sans.');
-    if (avecCsv) {
-      document.getElementById('fichier-mapstr-csv').dataset.enAttente = '1';
-      window._fichierMapstrGeo = fichierGeo;
-      document.getElementById('fichier-mapstr-csv').click();
-    } else {
-      importerMapstr(fichierGeo, null);
-    }
+  document.getElementById('mapstr-choisir-csv').addEventListener('click', function () {
+    document.getElementById('fichier-mapstr-csv').click();
   });
 
   document.getElementById('fichier-mapstr-csv').addEventListener('change', function (e) {
-    var fichierCsv = e.target.files[0];
+    var f = e.target.files[0];
     e.target.value = '';
-    var fichierGeo = window._fichierMapstrGeo;
-    window._fichierMapstrGeo = null;
-    if (!fichierGeo) return;
-    importerMapstr(fichierGeo, fichierCsv || null);
+    if (!f) return;
+    mapstrCsvFichier = f;
+    document.getElementById('mapstr-etat-csv').textContent = '✓ ' + f.name;
+  });
+
+  document.getElementById('mapstr-lancer').addEventListener('click', function () {
+    if (!mapstrGeojsonFichier) { annoncer('Choisis d\'abord le fichier .geojson.'); return; }
+    importerMapstr(mapstrGeojsonFichier, mapstrCsvFichier);
+    fermerMapstr();
   });
 
   document.getElementById('import-source-google').addEventListener('click', function () {
