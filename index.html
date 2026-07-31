@@ -788,14 +788,6 @@
   }
   .puce.gerer:hover { color: var(--accent); border-color: var(--accent-ligne); }
 
-  .epingle {
-    width: 15px; height: 15px;
-    border-radius: 50%;
-    border: 2.5px solid var(--surface);
-    box-shadow: 0 1px 4px rgba(16,18,21,.35);
-  }
-  .epingle.creux { background: transparent !important; border-style: dashed; border-color: var(--texte-doux); }
-
   .leaflet-popup-content-wrapper {
     background: var(--surface);
     color: var(--texte);
@@ -1012,7 +1004,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v26</span>
+        <span class="version" id="version">v27</span>
       </header>
 
       <div class="filtres">
@@ -1193,6 +1185,9 @@
 
 <section class="volet" id="volet-mapstr" aria-hidden="true">
   <div class="volet-entete">
+    <button class="fermer" id="mapstr-retour" aria-label="Revenir au choix de la source" title="Revenir en arrière">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+    </button>
     <span class="volet-titre">Importer depuis Mapstr</span>
     <button class="fermer" id="mapstr-fermer" aria-label="Fermer">×</button>
   </div>
@@ -1326,6 +1321,43 @@
       if (CATEGORIES[i].id === id) return CATEGORIES[i];
     }
     return CATEGORIES[CATEGORIES.length - 1] || { id: 'autre', nom: 'Autre', couleur: '#8A7F9B' };
+  }
+
+  /* Petites icônes (24×24) utilisées dans les pins de la carte, une par catégorie. */
+  var TRACES_ICONES = {
+    restaurant: '<path d="M4.5 13c-.6-3.4 1.6-6.6 5-7.7c2.6-.9 5.5-.5 7.7 1c2.6 1.8 4 4.9 3.4 8c-.6 3.2-3.2 5.7-6.4 6.4c-3.4.7-7-.4-9.2-3C4 16.3 3.9 14.6 4.5 13z"/>',
+    coffee: '<path d="M5 8h12v7a5 5 0 0 1-5 5h-2a5 5 0 0 1-5-5V8z"/><path d="M17 9.5h1.6a2.6 2.6 0 0 1 0 5.2H17v-1.8h1.2a.8.8 0 0 0 0-1.6H17z"/><rect x="4" y="21.2" width="16" height="1.6" rx="0.8"/>',
+    fastfood: '<path d="M6 10h12l-1.6 11.5a1 1 0 0 1-1 .9H8.6a1 1 0 0 1-1-.9L6 10z"/><rect x="7.2" y="4" width="1.8" height="7" rx="0.7"/><rect x="10" y="3" width="1.8" height="8" rx="0.7"/><rect x="12.8" y="3.5" width="1.8" height="7.5" rx="0.7"/><rect x="15.4" y="4.3" width="1.8" height="6.7" rx="0.7"/>',
+    bar: '<path d="M6 8h10v10a3.5 3.5 0 0 1-3.5 3.5h-3A3.5 3.5 0 0 1 6 18V8z"/><path d="M16 10.2c1.8-.3 3.4.9 3.4 2.8s-1.6 3.1-3.4 2.8v-1.8c.8.2 1.6-.2 1.6-1s-.8-1.2-1.6-1z"/><circle cx="8" cy="7" r="1.4"/><circle cx="11" cy="6.3" r="1.6"/><circle cx="14" cy="7" r="1.4"/>',
+    boulangerie: '<path d="M4.5 15.5c-1.2-3.6.3-7.7 3.6-9.9c2.3-1.5 5-1.9 7.4-1.3c-3.1.9-5.4 3.8-5.7 7.2c-.3 3.6 1.7 6.9 4.8 8.4c-2.4.9-5.1.7-7.3-.7c-1.2-.8-2.2-2-2.8-3.7z"/>',
+    autre: '<circle cx="12" cy="12" r="6"/>'
+  };
+
+  /* Éclaircit une couleur hexa en la mélangeant avec du blanc (0 = inchangée, 1 = blanc pur). */
+  function melangerBlanc(hex, ratio) {
+    hex = String(hex || '').replace('#', '');
+    if (hex.length === 3) hex = hex.split('').map(function (c) { return c + c; }).join('');
+    var r = parseInt(hex.substr(0, 2), 16) || 0;
+    var g = parseInt(hex.substr(2, 2), 16) || 0;
+    var b = parseInt(hex.substr(4, 2), 16) || 0;
+    r = Math.round(r + (255 - r) * ratio);
+    g = Math.round(g + (255 - g) * ratio);
+    b = Math.round(b + (255 - b) * ratio);
+    return 'rgb(' + r + ',' + g + ',' + b + ')';
+  }
+
+  /* Le pin lui-même : plein et net pour une adresse testée, pâle et pointillé
+     pour une adresse à tester. */
+  function formeEpingle(couleur, testee, idCat) {
+    var fond = testee ? couleur : melangerBlanc(couleur, 0.75);
+    var couleurIcone = testee ? '#FFFFFF' : couleur;
+    var pointilles = testee ? '' : ' stroke-dasharray="3,2.5"';
+    var icone = TRACES_ICONES[idCat] || TRACES_ICONES.autre;
+    return '<svg width="34" height="42" viewBox="0 0 34 42" xmlns="http://www.w3.org/2000/svg">' +
+      '<path d="M17 1C8.2 1 1 8.2 1 17c0 11 16 24 16 24s16-13 16-24C33 8.2 25.8 1 17 1z" ' +
+      'fill="' + fond + '" stroke="' + couleur + '" stroke-width="2"' + pointilles + '/>' +
+      '<g transform="translate(9,7) scale(.667)" fill="' + couleurIcone + '">' + icone + '</g>' +
+      '</svg>';
   }
 
   function enregistrerCats() {
@@ -1612,12 +1644,14 @@
     visibles.forEach(function (l) {
       if (typeof l.lat !== 'number' || typeof l.lng !== 'number') return;
       var c = categorie((l.categories || [])[0]);
+      var teste = !!l.note;
 
       var icone = L.divIcon({
         className: '',
-        html: '<div class="epingle' + (l.note ? '' : ' creux') + '" style="background:' + c.couleur + '"></div>',
-        iconSize: [15, 15],
-        iconAnchor: [7.5, 7.5]
+        html: formeEpingle(c.couleur, teste, c.id),
+        iconSize: [34, 42],
+        iconAnchor: [17, 42],
+        popupAnchor: [0, -36]
       });
 
       var m = L.marker([l.lat, l.lng], { icon: icone, title: l.nom }).addTo(coucheEpingles);
@@ -2677,6 +2711,10 @@
   var mapstrCsvFichier = null;
 
   document.getElementById('mapstr-fermer').addEventListener('click', fermerMapstr);
+  document.getElementById('mapstr-retour').addEventListener('click', function () {
+    fermerMapstr();
+    ouvrirImport();
+  });
 
   document.getElementById('mapstr-choisir-geojson').addEventListener('click', function () {
     document.getElementById('fichier-mapstr-geojson').click();
