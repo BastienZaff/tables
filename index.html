@@ -1012,7 +1012,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v25</span>
+        <span class="version" id="version">v26</span>
       </header>
 
       <div class="filtres">
@@ -1184,6 +1184,9 @@
         <span class="sous-titre">Le fichier .geojson exporté depuis Mapstr, et si tu l'as, le .csv pour récupérer tes notes.</span>
       </button>
       <button class="choix-source" type="button" id="import-source-google">
+        Google Maps
+        <span class="sous-titre">Le fichier récupéré via Google Takeout. Format encore expérimental.</span>
+      </button>
     </div>
   </div>
 </section>
@@ -2429,9 +2432,9 @@
         }
 
         var connus = {};
-        lieux.forEach(function (l) { connus[normaliser(l.nom) + '|' + normaliser(l.adresse)] = true; });
+        lieux.forEach(function (l) { connus[normaliser(l.nom) + '|' + normaliser(l.adresse)] = l; });
 
-        var ajoutes = 0, doublons = 0, sansPosition = 0;
+        var ajoutes = 0, completes = 0, doublons = 0, sansPosition = 0;
 
         geo.features.forEach(function (f) {
           var p = (f && f.properties) || {};
@@ -2441,13 +2444,23 @@
           var nom = p.name || 'Sans nom';
           var adresse = p.address || '';
           var cle = normaliser(nom) + '|' + normaliser(adresse);
-          if (connus[cle]) { doublons++; return; }
-
           var lig = parNom[normaliser(nom)];
+
           var note = 0;
           if (lig && lig.rating && lig.rating.trim()) {
             note = Math.round(parseFloat(lig.rating.replace(',', '.')));
             note = Math.max(1, Math.min(5, note || 1));
+          }
+
+          var existant = connus[cle];
+          if (existant) {
+            var maj = false;
+            if (!existant.note && note) { existant.note = note; maj = true; }
+            if (!existant.commentaire && lig && lig.userComment && lig.userComment.trim()) {
+              existant.commentaire = lig.userComment.trim(); maj = true;
+            }
+            if (maj) completes++; else doublons++;
+            return;
           }
 
           lieux.push({
@@ -2462,7 +2475,7 @@
             commentaire: lig && lig.userComment ? lig.userComment.trim() : '',
             tags: tagsLibresDepuisMapstr(p.tags)
           });
-          connus[cle] = true;
+          connus[cle] = lieux[lieux.length - 1];
           ajoutes++;
         });
 
@@ -2471,6 +2484,7 @@
         cadrer();
 
         var msg = ajoutes + (ajoutes > 1 ? ' adresses importées depuis Mapstr.' : ' adresse importée depuis Mapstr.');
+        if (completes) msg += ' ' + completes + (completes > 1 ? ' complétées (note ou commentaire).' : ' complétée (note ou commentaire).');
         if (doublons) msg += ' ' + doublons + ' déjà présentes, ignorées.';
         if (sansPosition) msg += ' ' + sansPosition + ' sans position, ignorées.';
         annoncer(msg);
