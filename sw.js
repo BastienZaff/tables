@@ -1,13 +1,14 @@
 /* Dévoreur Explorer — fonctionnement hors connexion.
    Change le numéro de version ci-dessous après chaque modification. */
 
-var VERSION = 'tables-v17';
+var VERSION = 'tables-v18';
 
 var COQUILLE = [
   './',
   './index.html',
   './manifest.webmanifest',
   './logo.png',
+  './ravioli.png',
   './icone-192.png',
   './icone-512.png',
   './icone-180.png',

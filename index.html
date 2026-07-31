@@ -454,12 +454,16 @@
   }
 
   /* signature : la note en fourchettes */
-  .fourchettes { display: inline-flex; gap: 2px; align-items: center; }
-  .fourchettes svg { display: block; }
-  .fourchettes .pleine { color: var(--accent); }
-  .fourchettes .creuse { color: var(--texte-doux); opacity: .3; }
-  .note-bouton .pleine { color: var(--accent); }
-  .note-bouton .creuse { color: var(--texte-doux); opacity: .45; }
+  .fourchettes { display: inline-flex; gap: 3px; align-items: center; }
+
+  .ravioli {
+    display: block;
+    object-fit: contain;
+  }
+  .ravioli.creuse { opacity: .22; filter: grayscale(.7); }
+
+  [data-theme="sombre"] .ravioli { filter: brightness(1.9) saturate(.7); }
+  [data-theme="sombre"] .ravioli.creuse { opacity: .3; filter: brightness(1.6) grayscale(.8); }
 
   .vide {
     padding: 46px 26px;
@@ -981,7 +985,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v17</span>
+        <span class="version" id="version">v18</span>
       </header>
 
       <div class="filtres">
@@ -1432,16 +1436,14 @@
   --------------------------------------------------------------- */
 
   function fourchette(pleine, taille) {
-    var t = taille || 13;
-    return '<svg class="' + (pleine ? 'pleine' : 'creuse') + '" width="' + t + '" height="' + t +
-      '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-      '<path d="M6 2v7a3 3 0 0 0 3 3 3 3 0 0 0 3-3V2"/><path d="M9 2v6"/><path d="M9 12v10"/>' +
-      '</svg>';
+    var t = taille || 15;
+    return '<img class="ravioli ' + (pleine ? 'pleine' : 'creuse') + '" src="ravioli.png" alt="" ' +
+           'width="' + t + '" height="' + t + '" aria-hidden="true">';
   }
 
   function rangFourchettes(note) {
     if (!note) return '<span class="etiquette a-tester">À tester</span>';
-    var s = '<span class="fourchettes" title="' + note + ' sur 5">';
+    var s = '<span class="fourchettes" title="' + note + ' ravioli' + (note > 1 ? 's' : '') + ' sur 5">';
     for (var i = 1; i <= 5; i++) s += fourchette(i <= note);
     return s + '</span>';
   }
@@ -2071,7 +2073,7 @@
         b.className = 'note-bouton';
         b.setAttribute('aria-label', n + ' sur 5');
         b.setAttribute('aria-pressed', brouillon.note === n ? 'true' : 'false');
-        b.innerHTML = fourchette(brouillon.note >= n, 15);
+        b.innerHTML = fourchette(brouillon.note >= n, 19);
         b.addEventListener('click', function () { brouillon.note = n; remplirVolet(); });
         zone.appendChild(b);
       })(i);
