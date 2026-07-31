@@ -299,9 +299,9 @@
 
   /* ---------- liste ---------- */
 
-  /* Feuille dépliée : les réglages s'effacent, la liste prend tout l'espace.
-     Ce comportement n'a de sens que sur mobile (voir @media plus bas) ; sur
-     le site, la liste et la carte sont déjà côte à côte. */
+  /* Feuille dépliée : les réglages s'effacent, la liste prend tout l'espace. */
+  .app[data-feuille="haute"] .reglages { display: none; }
+  .app[data-feuille="haute"] .feuille { margin-top: calc(10px + env(safe-area-inset-top)); }
 
   .feuille {
     flex: 1 1 0;
@@ -316,7 +316,7 @@
   [data-theme="sombre"] .feuille { box-shadow: 0 -8px 24px rgba(0,0,0,.35); }
 
   .poignee-feuille {
-    display: none;
+    display: flex;
     flex: none;
     padding: 9px 0 4px;
     justify-content: center;
@@ -936,9 +936,6 @@
     .app[data-vue="carte"] .panneau { display: none; }
 
     .feuille { margin-top: 10px; }
-    .poignee-feuille { display: flex; }
-    .app[data-feuille="haute"] .reglages { display: none; }
-    .app[data-feuille="haute"] .feuille { margin-top: calc(10px + env(safe-area-inset-top)); }
     .languette { display: flex; }
     .app[data-vue="liste"] .languette {
       left: auto;
@@ -1015,7 +1012,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v24</span>
+        <span class="version" id="version">v25</span>
       </header>
 
       <div class="filtres">
