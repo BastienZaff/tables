@@ -838,18 +838,37 @@
   .leaflet-popup-content-wrapper {
     background: var(--surface);
     color: var(--texte);
-    border-radius: 3px;
-    border: 1px solid var(--ligne);
+    border-radius: 18px;
+    border: 0;
+    box-shadow: var(--ombre);
   }
-  .leaflet-popup-tip { background: var(--surface); }
-  .leaflet-popup-content { margin: 13px 15px; font-family: var(--body); }
-  .leaflet-popup-close-button { color: var(--texte-doux) !important; }
+  .leaflet-popup-tip {
+    background: var(--surface);
+    box-shadow: var(--ombre);
+  }
+  .leaflet-popup-content { margin: 15px 34px 14px 17px; font-family: var(--body); line-height: 1.4; }
+  .leaflet-popup-close-button {
+    color: var(--texte-doux) !important;
+    font-size: 18px !important;
+    font-weight: 400 !important;
+    width: 26px !important; height: 26px !important;
+    display: grid !important;
+    place-items: center;
+    top: 9px !important; right: 9px !important;
+    background: var(--pastille);
+    border-radius: 50%;
+    transition: background .15s, color .15s;
+  }
+  .leaflet-popup-close-button:hover {
+    color: var(--texte) !important;
+    background: var(--pastille-forte) !important;
+  }
 
-  .bulle-nom { font-family: var(--display); font-weight: 600; font-size: 16px; letter-spacing: 0; line-height: 1.25; }
-  .bulle-adr { font-size: 11.5px; color: var(--texte-doux); margin-top: 4px; line-height: 1.4; }
-  .bulle-mot { font-size: 12px; font-style: italic; margin-top: 7px; line-height: 1.45; }
-  .bulle-date { font-size: 11.5px; color: var(--texte-doux); margin-top: 4px; }
-  .bulle-actions { display: flex; gap: 8px; margin-top: 11px; align-items: center; }
+  .bulle-nom { font-family: var(--display); font-weight: 600; font-size: 17px; letter-spacing: 0; line-height: 1.25; color: var(--texte); }
+  .bulle-adr { font-size: 12px; color: var(--texte-doux); margin-top: 5px; line-height: 1.45; }
+  .bulle-mot { font-size: 12.5px; font-style: italic; margin-top: 9px; line-height: 1.5; color: var(--texte); }
+  .bulle-date { font-size: 11.5px; color: var(--texte-doux); margin-top: 6px; }
+  .bulle-actions { display: flex; gap: 10px; margin-top: 13px; align-items: center; }
   .bulle-lien {
     font-family: var(--label);
     font-weight: 400;
@@ -934,7 +953,11 @@
     pointer-events: none !important;
   }
   .etiquette-carte::before { display: none !important; }
-  #map.zoom-proche.montrer-noms .etiquette-carte { opacity: 1 !important; }
+  #map.zoom-proche.montrer-noms .etiquette-carte {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    cursor: pointer;
+  }
 
   .bandeau-pointage {
     position: absolute;
@@ -1072,7 +1095,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v33</span>
+        <span class="version" id="version">v34</span>
       </header>
 
       <div class="filtres">
@@ -1796,6 +1819,16 @@
         offset: [8, -20],
         className: 'etiquette-carte',
         opacity: 1
+      });
+      m.on('tooltipopen', function (e) {
+        var el = e.tooltip.getElement();
+        if (el && !el._clicBranche) {
+          el._clicBranche = true;
+          el.addEventListener('click', function (evt) {
+            evt.stopPropagation();
+            m.openPopup();
+          });
+        }
       });
       epingles[l.identifiant] = m;
     });
