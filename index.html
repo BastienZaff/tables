@@ -846,7 +846,7 @@
     background: var(--surface);
     box-shadow: var(--ombre);
   }
-  .leaflet-popup-content { margin: 15px 34px 14px 17px; font-family: var(--body); line-height: 1.4; }
+  .leaflet-popup-content { margin: 15px 34px 8px 17px; font-family: var(--body); line-height: 1.4; }
   .leaflet-popup-close-button {
     color: var(--texte-doux) !important;
     font-size: 18px !important;
@@ -890,6 +890,9 @@
   }
   .bulle-bouton:hover { background: var(--accent-doux); color: var(--accent); }
   .bulle-bouton svg { flex: none; opacity: .8; }
+  .bulle-bouton.maps { color: #1A7340 !important; }
+  .bulle-bouton.maps:hover { background: rgba(52,168,83,.13); }
+  .bulle-bouton.maps svg { opacity: 1; }
 
   /* ---------- messages ---------- */
 
@@ -966,6 +969,7 @@
     cursor: pointer;
   }
   .etiquette-carte.etiquette-masquee { opacity: 0 !important; pointer-events: none !important; }
+  .etiquette-carte.cache-collision { opacity: 0 !important; pointer-events: none !important; }
 
   .bandeau-pointage {
     position: absolute;
@@ -1103,7 +1107,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v36</span>
+        <span class="version" id="version">v37</span>
       </header>
 
       <div class="filtres">
@@ -1745,15 +1749,53 @@
     });
 
     carte.on('zoomend', majZoomNoms);
+    var minuterieCollisions;
+    carte.on('moveend', function () {
+      clearTimeout(minuterieCollisions);
+      minuterieCollisions = setTimeout(recalculerCollisionsNoms, 60);
+    });
     majZoomNoms();
   }
 
-  var SEUIL_ZOOM_NOMS = 15;
+  var SEUIL_ZOOM_NOMS = 14;
+  var marqueursNoms = [];
 
   function majZoomNoms() {
     var el = document.getElementById('map');
     if (!el || !carte) return;
     el.classList.toggle('zoom-proche', carte.getZoom() >= SEUIL_ZOOM_NOMS);
+    recalculerCollisionsNoms();
+  }
+
+  /* Comme sur Mapstr : plutôt que d'afficher tous les noms (illisible dès que
+     les lieux sont proches les uns des autres), on ne montre le nom d'un lieu
+     que si son étiquette ne chevauche aucune autre déjà affichée. Les lieux
+     isolés gardent leur nom visible à tout niveau de zoom suffisant ; dans une
+     zone dense, seuls quelques-uns (ou aucun) s'affichent, et davantage
+     apparaissent au fur et à mesure qu'on zoome et que la place se libère. */
+  function recalculerCollisionsNoms() {
+    if (!carte) return;
+    var placees = [];
+    marqueursNoms.forEach(function (item) {
+      var tt = item.marker.getTooltip();
+      var el = tt && tt.getElement();
+      if (!el) return;
+
+      var pt = carte.latLngToContainerPoint(item.marker.getLatLng());
+      var largeur = Math.min(170, 20 + item.nom.length * 6.3);
+      var boite = { left: pt.x - largeur / 2, right: pt.x + largeur / 2, top: pt.y + 2, bottom: pt.y + 22 };
+
+      var chevauche = placees.some(function (b) {
+        return boite.left < b.right && boite.right > b.left && boite.top < b.bottom && boite.bottom > b.top;
+      });
+
+      if (chevauche) {
+        el.classList.add('cache-collision');
+      } else {
+        el.classList.remove('cache-collision');
+        placees.push(boite);
+      }
+    });
   }
 
   function poserFond() {
@@ -1802,6 +1844,7 @@
   function dessinerEpingles() {
     coucheEpingles.clearLayers();
     epingles = {};
+    marqueursNoms = [];
 
     var visibles = lieuxFiltres();
 
@@ -1823,7 +1866,7 @@
       m.bindTooltip('<span style="color:' + c.couleur + '">' + echapper(l.nom) + '</span>', {
         permanent: true,
         direction: 'bottom',
-        offset: [0, 6],
+        offset: [0, -2],
         className: 'etiquette-carte',
         opacity: 1
       });
@@ -1847,7 +1890,10 @@
       });
       m.addTo(coucheEpingles);
       epingles[l.identifiant] = m;
+      marqueursNoms.push({ marker: m, nom: l.nom });
     });
+
+    recalculerCollisionsNoms();
   }
 
   function contenuBulle(l) {
@@ -1869,11 +1915,18 @@
     }
     if (l.commentaire) h += '<div class="bulle-mot">' + echapper(l.commentaire) + '</div>';
     h += '<div class="bulle-separateur"></div>';
+    var idClip = 'clip-pin-' + (compteurFiltresEpingle++);
     h += '<div class="bulle-actions">' +
-         '<a class="bulle-bouton" href="' + lien + '" target="_blank" rel="noopener">' +
+         '<a class="bulle-bouton maps" href="' + lien + '" target="_blank" rel="noopener">' +
          '<svg width="15" height="15" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' +
-         '<path fill="#4285F4" d="M12 2C7.6 2 4 5.6 4 10c0 5.6 7 11.5 7.3 11.7a1 1 0 0 0 1.4 0C13 21.5 20 15.6 20 10c0-4.4-3.6-8-8-8z"/>' +
-         '<circle cx="12" cy="10" r="3.4" fill="#FFFFFF"/>' +
+         '<defs><clipPath id="' + idClip + '"><path d="M12 2C7.6 2 4 5.6 4 10c0 5.6 7 11.5 7.3 11.7a1 1 0 0 0 1.4 0C13 21.5 20 15.6 20 10c0-4.4-3.6-8-8-8z"/></clipPath></defs>' +
+         '<g clip-path="url(#' + idClip + ')">' +
+         '<rect x="4" y="2" width="16" height="7" fill="#EA4335"/>' +
+         '<rect x="4" y="9" width="16" height="4" fill="#FBBC05"/>' +
+         '<rect x="4" y="13" width="16" height="4" fill="#34A853"/>' +
+         '<rect x="4" y="17" width="16" height="6" fill="#4285F4"/>' +
+         '</g>' +
+         '<circle cx="12" cy="10" r="3.3" fill="#FFFFFF"/>' +
          '</svg>' +
          'Google Maps</a>' +
          '<button class="bulle-bouton" data-modifier="' + l.identifiant + '">' +
