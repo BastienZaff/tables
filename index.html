@@ -864,31 +864,32 @@
     background: var(--pastille-forte) !important;
   }
 
+  .bulle-entete { display: flex; align-items: center; gap: 8px; }
+  .bulle-puce { width: 9px; height: 9px; border-radius: 50%; flex: none; }
   .bulle-nom { font-family: var(--display); font-weight: 600; font-size: 17px; letter-spacing: 0; line-height: 1.25; color: var(--texte); }
   .bulle-adr { font-size: 12px; color: var(--texte-doux); margin-top: 5px; line-height: 1.45; }
   .bulle-mot { font-size: 12.5px; font-style: italic; margin-top: 9px; line-height: 1.5; color: var(--texte); }
   .bulle-date { font-size: 11.5px; color: var(--texte-doux); margin-top: 6px; }
-  .bulle-actions { display: flex; gap: 10px; margin-top: 13px; align-items: center; }
-  .bulle-lien {
+  .bulle-separateur { height: 1px; background: var(--ligne); margin: 13px 0 11px; }
+  .bulle-actions { display: flex; gap: 8px; align-items: center; }
+  .bulle-bouton {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--pastille-forte);
+    border: 0;
+    border-radius: 999px;
+    padding: 6px 12px;
     font-family: var(--label);
-    font-weight: 400;
-    font-size: 12px;
+    font-weight: 500;
+    font-size: 11.5px;
     letter-spacing: .01em;
-    color: var(--accent) !important;
+    color: var(--texte);
     text-decoration: none;
-    border-bottom: 1px solid var(--accent-ligne);
-    padding-bottom: 1px;
+    transition: background .15s, color .15s;
   }
-  .bulle-lien:hover { border-bottom-color: var(--accent); }
-  .bulle-modifier {
-    background: transparent; border: 0; padding: 0;
-    font-family: var(--label); font-weight: 500;
-    font-size: 12px; letter-spacing: .01em;
-    color: var(--texte-doux);
-    border-bottom: 1px solid var(--ligne);
-    padding-bottom: 1px;
-  }
-  .bulle-modifier:hover { color: var(--texte); }
+  .bulle-bouton:hover { background: var(--accent-doux); color: var(--accent); }
+  .bulle-bouton svg { flex: none; opacity: .8; }
 
   /* ---------- messages ---------- */
 
@@ -958,6 +959,7 @@
     pointer-events: auto !important;
     cursor: pointer;
   }
+  .etiquette-carte.etiquette-masquee { opacity: 0 !important; pointer-events: none !important; }
 
   .bandeau-pointage {
     position: absolute;
@@ -1095,7 +1097,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v34</span>
+        <span class="version" id="version">v35</span>
       </header>
 
       <div class="filtres">
@@ -1811,7 +1813,7 @@
         popupAnchor: [0, -36]
       });
 
-      var m = L.marker([l.lat, l.lng], { icon: icone, title: l.nom }).addTo(coucheEpingles);
+      var m = L.marker([l.lat, l.lng], { icon: icone, title: l.nom });
       m.bindPopup(contenuBulle(l), { closeButton: true, minWidth: 210 });
       m.bindTooltip(echapper(l.nom), {
         permanent: true,
@@ -1830,6 +1832,15 @@
           });
         }
       });
+      m.on('popupopen', function () {
+        var tt = m.getTooltip();
+        if (tt && tt.getElement()) tt.getElement().classList.add('etiquette-masquee');
+      });
+      m.on('popupclose', function () {
+        var tt = m.getTooltip();
+        if (tt && tt.getElement()) tt.getElement().classList.remove('etiquette-masquee');
+      });
+      m.addTo(coucheEpingles);
       epingles[l.identifiant] = m;
     });
   }
@@ -1837,19 +1848,27 @@
   function contenuBulle(l) {
     var requete = encodeURIComponent(l.nom + ' ' + (l.adresse || ''));
     var lien = 'https://www.google.com/maps/search/?api=1&query=' + requete;
+    var c = categorie((l.categories || [])[0]);
 
-    var h = '<div class="bulle-nom">' + echapper(l.nom) + '</div>';
+    var h = '<div class="bulle-entete">' +
+            '<span class="bulle-puce" style="background:' + c.couleur + '"></span>' +
+            '<span class="bulle-nom">' + echapper(l.nom) + '</span></div>';
     if (l.adresse) h += '<div class="bulle-adr">' + echapper(l.adresse) + '</div>';
-    h += '<div style="margin-top:8px">' + rangFourchettes(l.note) + '</div>';
+    h += '<div style="margin-top:9px">' + rangFourchettes(l.note) + '</div>';
     if (l.dates && l.dates.length === 1) {
       h += '<div class="bulle-date">Visité le ' + formaterDateFR(l.dates[0]) + '</div>';
     } else if (l.dates && l.dates.length > 1) {
       h += '<div class="bulle-date">' + l.dates.length + ' visites</div>';
     }
     if (l.commentaire) h += '<div class="bulle-mot">' + echapper(l.commentaire) + '</div>';
+    h += '<div class="bulle-separateur"></div>';
     h += '<div class="bulle-actions">' +
-         '<a class="bulle-lien" href="' + lien + '" target="_blank" rel="noopener">Ouvrir dans Google Maps</a>' +
-         '<button class="bulle-modifier" data-modifier="' + l.identifiant + '">Modifier</button>' +
+         '<a class="bulle-bouton" href="' + lien + '" target="_blank" rel="noopener">' +
+         '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 6-9 12-9 12S3 16 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="2.7"/></svg>' +
+         'Google Maps</a>' +
+         '<button class="bulle-bouton" data-modifier="' + l.identifiant + '">' +
+         '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>' +
+         'Modifier</button>' +
          '</div>';
     return h;
   }
