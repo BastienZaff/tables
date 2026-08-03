@@ -1107,7 +1107,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v37</span>
+        <span class="version" id="version">v38</span>
       </header>
 
       <div class="filtres">
@@ -1775,15 +1775,24 @@
      apparaissent au fur et à mesure qu'on zoome et que la place se libère. */
   function recalculerCollisionsNoms() {
     if (!carte) return;
+    var conteneur = document.getElementById('map');
+    if (!conteneur) return;
+    var refRect = conteneur.getBoundingClientRect();
+    var marge = 4;
     var placees = [];
+
     marqueursNoms.forEach(function (item) {
       var tt = item.marker.getTooltip();
       var el = tt && tt.getElement();
       if (!el) return;
 
-      var pt = carte.latLngToContainerPoint(item.marker.getLatLng());
-      var largeur = Math.min(170, 20 + item.nom.length * 6.3);
-      var boite = { left: pt.x - largeur / 2, right: pt.x + largeur / 2, top: pt.y + 2, bottom: pt.y + 22 };
+      var r = el.getBoundingClientRect();
+      var boite = {
+        left: r.left - refRect.left - marge,
+        right: r.right - refRect.left + marge,
+        top: r.top - refRect.top - marge,
+        bottom: r.bottom - refRect.top + marge
+      };
 
       var chevauche = placees.some(function (b) {
         return boite.left < b.right && boite.right > b.left && boite.top < b.bottom && boite.bottom > b.top;
