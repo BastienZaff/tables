@@ -513,6 +513,22 @@
   [data-theme="sombre"] .ravioli.creuse { opacity: .3; filter: brightness(1.6) grayscale(.8); }
   .puce[aria-pressed="true"] .ravioli { filter: brightness(0) invert(1) !important; opacity: 1 !important; }
 
+  .groupe-tri { display: flex; align-items: center; gap: 6px; }
+  .ouvrir-tri.actif { background: var(--accent) !important; color: #FFFFFF; }
+  .croix-tri {
+    display: grid;
+    place-items: center;
+    width: 30px; height: 30px;
+    flex: none;
+    border-radius: 50%;
+    border: 0;
+    background: var(--pastille-forte);
+    color: var(--texte-doux);
+    font-size: 16px;
+    line-height: 1;
+  }
+  .croix-tri:hover { background: var(--accent-doux); color: var(--danger); }
+
   .vide {
     padding: 46px 26px;
     text-align: center;
@@ -1123,7 +1139,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v42</span>
+        <span class="version" id="version">v43</span>
       </header>
 
       <div class="filtres">
@@ -1132,10 +1148,13 @@
         <div class="puces" id="puces-categories"></div>
         <div class="villes" id="villes"></div>
 
-        <button class="puce ouvrir-tri" type="button" id="btn-tri" style="margin-top:11px">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M6 12h12M10 18h4"/></svg>
-          <span id="btn-tri-libelle">Trier et filtrer</span>
-        </button>
+        <div class="groupe-tri" style="margin-top:11px">
+          <button class="puce ouvrir-tri" type="button" id="btn-tri">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M6 12h12M10 18h4"/></svg>
+            <span id="btn-tri-libelle">Trier et filtrer</span>
+          </button>
+          <button class="croix-tri" type="button" id="btn-tri-reset" aria-label="Réinitialiser le tri et les filtres" title="Réinitialiser" hidden>×</button>
+        </div>
       </div>
     </div>
 
@@ -2272,6 +2291,27 @@
     document.getElementById('voile').classList.remove('ouvert');
   }
 
+  /* Vrai dès que le tri ou un filtre s'écarte de l'état par défaut
+     (alphabétique croissant, aucun filtre de récence ni de note). */
+  function triOuFiltreActif() {
+    return triActif !== 'alpha' || triSens.alpha !== 1 ||
+      filtreRecence !== 'tout' || filtresNotes.length > 0;
+  }
+
+  function dessinerBoutonTri() {
+    var actif = triOuFiltreActif();
+    document.getElementById('btn-tri').classList.toggle('actif', actif);
+    document.getElementById('btn-tri-reset').hidden = !actif;
+  }
+
+  function reinitialiserTri() {
+    triActif = 'alpha';
+    triSens = { alpha: 1, date: -1, note: -1 };
+    filtreRecence = 'tout';
+    filtresNotes = [];
+    rafraichir();
+  }
+
   function dessinerBascule() {
     var zone = document.getElementById('bascule-etat');
     var total = lieux.length;
@@ -2500,6 +2540,7 @@
     dessinerTri();
     dessinerRecence();
     dessinerNotes();
+    dessinerBoutonTri();
     dessinerListe();
     dessinerEpingles();
 
@@ -3230,6 +3271,10 @@
   document.getElementById('btn-pointer').addEventListener('click', lancerPointage);
   document.getElementById('cats-fermer').addEventListener('click', fermerCats);
   document.getElementById('btn-tri').addEventListener('click', ouvrirTri);
+  document.getElementById('btn-tri-reset').addEventListener('click', function (e) {
+    e.stopPropagation();
+    reinitialiserTri();
+  });
   document.getElementById('tri-fermer').addEventListener('click', fermerTri);
   document.getElementById('cat-ajouter').addEventListener('click', ajouterCat);
   document.getElementById('cat-nom').addEventListener('keydown', function (e) {
