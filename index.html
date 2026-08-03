@@ -916,6 +916,25 @@
   }
   .commande:hover { background: var(--surface-2); }
   .commande svg { display: block; }
+  .commande[aria-pressed="true"] { background: var(--accent); color: #FFFFFF; border-color: var(--accent); }
+  .commande[aria-pressed="true"]:hover { background: var(--accent); }
+
+  .etiquette-carte {
+    background: var(--surface) !important;
+    color: var(--texte) !important;
+    border: 1px solid var(--ligne) !important;
+    border-radius: 999px !important;
+    font-family: var(--label) !important;
+    font-weight: 600 !important;
+    font-size: 12px !important;
+    padding: 3px 10px !important;
+    box-shadow: var(--ombre) !important;
+    opacity: 0 !important;
+    transition: opacity .15s;
+    pointer-events: none !important;
+  }
+  .etiquette-carte::before { display: none !important; }
+  #map.zoom-proche.montrer-noms .etiquette-carte { opacity: 1 !important; }
 
   .bandeau-pointage {
     position: absolute;
@@ -1053,7 +1072,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v32</span>
+        <span class="version" id="version">v33</span>
       </header>
 
       <div class="filtres">
@@ -1086,6 +1105,9 @@
     <div class="commandes-carte">
       <button class="commande" id="btn-theme" title="Clair ou sombre" aria-label="Basculer clair ou sombre"></button>
       <button class="commande" id="btn-fond" title="Style de carte" aria-label="Changer le style de carte"></button>
+      <button class="commande" id="btn-noms" title="Afficher les noms sur la carte" aria-label="Afficher ou masquer les noms sur la carte" aria-pressed="false">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h7"/></svg>
+      </button>
     </div>
     <div class="bandeau-pointage" id="bandeau-pointage">Clique sur la carte pour poser le point</div>
   </div>
@@ -1283,6 +1305,8 @@
   var CLE = 'tables:v1';
   var CLE_THEME = 'tables:theme';
   var CLE_FOND = 'tables:fond';
+  var CLE_NOMS = 'tables:noms';
+  var montrerNoms = false;
   var CLE_VILLES = 'tables:villes';
 
   var FONDS = {
@@ -1689,6 +1713,17 @@
       ouvrirVolet();
       annoncer('Point posé.');
     });
+
+    carte.on('zoomend', majZoomNoms);
+    majZoomNoms();
+  }
+
+  var SEUIL_ZOOM_NOMS = 15;
+
+  function majZoomNoms() {
+    var el = document.getElementById('map');
+    if (!el || !carte) return;
+    el.classList.toggle('zoom-proche', carte.getZoom() >= SEUIL_ZOOM_NOMS);
   }
 
   function poserFond() {
@@ -1726,6 +1761,14 @@
     if (carte) poserFond();
   }
 
+  /* Affiche ou masque le nom des lieux sur la carte, seulement une fois zoomé
+     d'assez près (sinon ça serait illisible, tout collé). */
+  function appliquerNoms() {
+    document.getElementById('btn-noms').setAttribute('aria-pressed', montrerNoms ? 'true' : 'false');
+    var el = document.getElementById('map');
+    if (el) el.classList.toggle('montrer-noms', montrerNoms);
+  }
+
   function dessinerEpingles() {
     coucheEpingles.clearLayers();
     epingles = {};
@@ -1747,6 +1790,13 @@
 
       var m = L.marker([l.lat, l.lng], { icon: icone, title: l.nom }).addTo(coucheEpingles);
       m.bindPopup(contenuBulle(l), { closeButton: true, minWidth: 210 });
+      m.bindTooltip(echapper(l.nom), {
+        permanent: true,
+        direction: 'right',
+        offset: [8, -20],
+        className: 'etiquette-carte',
+        opacity: 1
+      });
       epingles[l.identifiant] = m;
     });
   }
@@ -2813,6 +2863,13 @@
     annoncer('Carte : ' + FONDS[fondActif].nom + '.');
   });
 
+  document.getElementById('btn-noms').addEventListener('click', function () {
+    montrerNoms = !montrerNoms;
+    try { localStorage.setItem(CLE_NOMS, montrerNoms ? '1' : '0'); } catch (e) {}
+    appliquerNoms();
+    annoncer(montrerNoms ? 'Noms affichés sur la carte, une fois zoomé.' : 'Noms masqués sur la carte.');
+  });
+
   document.getElementById('btn-ajouter').addEventListener('click', ajouter);
   document.getElementById('date-ajouter').addEventListener('click', function () {
     if (!brouillon) return;
@@ -3022,6 +3079,7 @@
   try {
     theme = localStorage.getItem(CLE_THEME) || 'clair';
     fondActif = localStorage.getItem(CLE_FOND) || 'voyager';
+    montrerNoms = localStorage.getItem(CLE_NOMS) === '1';
     var vv = localStorage.getItem(CLE_VILLES);
     villes = vv ? JSON.parse(vv) : [];
     if (!Array.isArray(villes)) villes = [];
@@ -3036,6 +3094,7 @@
   demarrerCarte();
   appliquerTheme();
   appliquerFond();
+  appliquerNoms();
 
   function rangerLancement() {
     var e = document.getElementById('lancement');
