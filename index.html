@@ -511,6 +511,7 @@
 
   [data-theme="sombre"] .ravioli { filter: brightness(1.9) saturate(.7); }
   [data-theme="sombre"] .ravioli.creuse { opacity: .3; filter: brightness(1.6) grayscale(.8); }
+  .puce[aria-pressed="true"] .ravioli { filter: brightness(0) invert(1) !important; opacity: 1 !important; }
 
   .vide {
     padding: 46px 26px;
@@ -1122,7 +1123,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v40</span>
+        <span class="version" id="version">v42</span>
       </header>
 
       <div class="filtres">
@@ -1131,14 +1132,10 @@
         <div class="puces" id="puces-categories"></div>
         <div class="villes" id="villes"></div>
 
-        <span class="etiq-filtre">Trier par</span>
-        <div class="puces" id="puces-tri"></div>
-
-        <span class="etiq-filtre">Dernière visite</span>
-        <div class="puces" id="puces-recence"></div>
-
-        <span class="etiq-filtre">Note</span>
-        <div class="puces" id="puces-notes"></div>
+        <button class="puce ouvrir-tri" type="button" id="btn-tri" style="margin-top:11px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M6 12h12M10 18h4"/></svg>
+          <span id="btn-tri-libelle">Trier et filtrer</span>
+        </button>
       </div>
     </div>
 
@@ -1292,6 +1289,31 @@
   </div>
 </section>
 
+<section class="volet" id="volet-tri" aria-hidden="true">
+  <div class="volet-entete">
+    <span class="volet-titre">Trier et filtrer</span>
+    <button class="fermer" id="tri-fermer" aria-label="Fermer">×</button>
+  </div>
+
+  <div class="volet-corps">
+    <div class="groupe">
+      <span class="etiq">Trier par</span>
+      <div class="puces" id="puces-tri"></div>
+      <div class="aide">Touche à nouveau un tri déjà actif pour inverser l'ordre.</div>
+    </div>
+
+    <div class="groupe">
+      <span class="etiq">Filtrer : dernière visite</span>
+      <div class="puces" id="puces-recence"></div>
+    </div>
+
+    <div class="groupe">
+      <span class="etiq">Filtrer : note</span>
+      <div class="puces" id="puces-notes"></div>
+    </div>
+  </div>
+</section>
+
 <section class="volet" id="volet-import" aria-hidden="true">
   <div class="volet-entete">
     <span class="volet-titre">Importer des adresses</span>
@@ -1415,6 +1437,7 @@
   var villes = [];
   var villesActives = [];
   var triActif = 'alpha';       // 'alpha' | 'date' | 'note'
+  var triSens = { alpha: 1, date: -1, note: -1 }; // 1 = croissant, -1 = décroissant
   var filtreRecence = 'tout';   // 'tout' | 'semaine' | 'mois' | 'an' | 'ancien'
   var filtresNotes = [];        // tableau vide = toutes les notes ; sinon, une des notes cochées
   var teinteChoisie = '#C24DE8';
@@ -1785,6 +1808,7 @@
   }
 
   var SEUIL_ZOOM_NOMS = 14;
+  var SEUIL_ZOOM_TOUS = 16.5;  // au-delà, tous les noms s'affichent, même serrés
   var marqueursNoms = [];
 
   function majZoomNoms() {
@@ -1799,11 +1823,23 @@
      que si son étiquette ne chevauche aucune autre déjà affichée. Les lieux
      isolés gardent leur nom visible à tout niveau de zoom suffisant ; dans une
      zone dense, seuls quelques-uns (ou aucun) s'affichent, et davantage
-     apparaissent au fur et à mesure qu'on zoome et que la place se libère. */
+     apparaissent au fur et à mesure qu'on zoome et que la place se libère.
+     Passé un certain niveau de zoom, la place est de toute façon suffisante :
+     on arrête d'en cacher et on montre tout le monde. */
   function recalculerCollisionsNoms() {
     if (!carte) return;
     var conteneur = document.getElementById('map');
     if (!conteneur) return;
+
+    if (carte.getZoom() >= SEUIL_ZOOM_TOUS) {
+      marqueursNoms.forEach(function (item) {
+        var tt = item.marker.getTooltip();
+        var el = tt && tt.getElement();
+        if (el) el.classList.remove('cache-collision');
+      });
+      return;
+    }
+
     var refRect = conteneur.getBoundingClientRect();
     var marge = 4;
     var placees = [];
@@ -2054,17 +2090,19 @@
     });
 
     if (triActif === 'note') {
-      resultat.sort(function (a, b) { return (b.note || 0) - (a.note || 0) || a.nom.localeCompare(b.nom, 'fr'); });
+      resultat.sort(function (a, b) {
+        return ((a.note || 0) - (b.note || 0)) * triSens.note || a.nom.localeCompare(b.nom, 'fr');
+      });
     } else if (triActif === 'date') {
       resultat.sort(function (a, b) {
         var da = derniereVisite(a), db = derniereVisite(b);
-        if (da && db) return db.localeCompare(da) || a.nom.localeCompare(b.nom, 'fr');
+        if (!da && !db) return a.nom.localeCompare(b.nom, 'fr');
         if (da && !db) return -1;
         if (!da && db) return 1;
-        return a.nom.localeCompare(b.nom, 'fr');
+        return (da < db ? -1 : da > db ? 1 : 0) * triSens.date || a.nom.localeCompare(b.nom, 'fr');
       });
     } else {
-      resultat.sort(function (a, b) { return a.nom.localeCompare(b.nom, 'fr'); });
+      resultat.sort(function (a, b) { return a.nom.localeCompare(b.nom, 'fr') * triSens.alpha; });
     }
 
     return resultat;
@@ -2090,11 +2128,34 @@
   }
 
   function dessinerTri() {
-    dessinerPucesSimples('puces-tri', [
+    var zone = document.getElementById('puces-tri');
+    var choix = [
       { id: 'alpha', nom: 'Alphabétique' },
       { id: 'date', nom: 'Dernière visite' },
       { id: 'note', nom: 'Note' }
-    ], function (id) { return triActif === id; }, function (id) { triActif = id; });
+    ];
+    zone.innerHTML = '';
+    choix.forEach(function (c) {
+      var actif = triActif === c.id;
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'puce';
+      b.setAttribute('aria-pressed', actif ? 'true' : 'false');
+      if (actif) { b.style.background = 'var(--accent)'; b.style.color = '#FFFFFF'; }
+      b.appendChild(document.createTextNode(c.nom));
+      if (actif) {
+        var fleche = document.createElement('span');
+        fleche.setAttribute('aria-hidden', 'true');
+        fleche.textContent = triSens[c.id] === 1 ? ' ↑' : ' ↓';
+        b.appendChild(fleche);
+      }
+      b.addEventListener('click', function () {
+        if (triActif === c.id) triSens[c.id] = -triSens[c.id];
+        else triActif = c.id;
+        rafraichir();
+      });
+      zone.appendChild(b);
+    });
   }
 
   function dessinerRecence() {
@@ -2193,6 +2254,21 @@
   function fermerCats() {
     document.getElementById('volet-cats').classList.remove('ouvert');
     document.getElementById('volet-cats').setAttribute('aria-hidden', 'true');
+    document.getElementById('voile').classList.remove('ouvert');
+  }
+
+  function ouvrirTri() {
+    dessinerTri();
+    dessinerRecence();
+    dessinerNotes();
+    document.getElementById('volet-tri').classList.add('ouvert');
+    document.getElementById('volet-tri').setAttribute('aria-hidden', 'false');
+    document.getElementById('voile').classList.add('ouvert');
+  }
+
+  function fermerTri() {
+    document.getElementById('volet-tri').classList.remove('ouvert');
+    document.getElementById('volet-tri').setAttribute('aria-hidden', 'true');
     document.getElementById('voile').classList.remove('ouvert');
   }
 
@@ -3147,11 +3223,14 @@
     fermerCats();
     fermerImport();
     fermerMapstr();
+    fermerTri();
   });
   document.getElementById('btn-enregistrer').addEventListener('click', valider);
   document.getElementById('btn-supprimer').addEventListener('click', supprimer);
   document.getElementById('btn-pointer').addEventListener('click', lancerPointage);
   document.getElementById('cats-fermer').addEventListener('click', fermerCats);
+  document.getElementById('btn-tri').addEventListener('click', ouvrirTri);
+  document.getElementById('tri-fermer').addEventListener('click', fermerTri);
   document.getElementById('cat-ajouter').addEventListener('click', ajouterCat);
   document.getElementById('cat-nom').addEventListener('keydown', function (e) {
     if (e.key === 'Enter') ajouterCat();
