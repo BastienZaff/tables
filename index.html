@@ -629,6 +629,18 @@
     margin-bottom: 6px;
   }
 
+  .etiq-filtre {
+    display: block;
+    font-family: var(--label);
+    font-weight: 600;
+    font-size: 11.5px;
+    letter-spacing: .02em;
+    text-transform: uppercase;
+    color: var(--texte-doux);
+    margin-top: 14px;
+    margin-bottom: -3px;
+  }
+
   .saisie, .zone, .liste-deroulante {
     width: 100%;
     background: var(--surface-2);
@@ -968,8 +980,11 @@
     pointer-events: auto !important;
     cursor: pointer;
   }
-  .etiquette-carte.etiquette-masquee { opacity: 0 !important; pointer-events: none !important; }
-  .etiquette-carte.cache-collision { opacity: 0 !important; pointer-events: none !important; }
+  #map.zoom-proche.montrer-noms .etiquette-carte.etiquette-masquee,
+  #map.zoom-proche.montrer-noms .etiquette-carte.cache-collision {
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
 
   .bandeau-pointage {
     position: absolute;
@@ -1107,7 +1122,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v38</span>
+        <span class="version" id="version">v40</span>
       </header>
 
       <div class="filtres">
@@ -1115,6 +1130,15 @@
         <input class="champ-recherche" id="filtre-texte" type="search" placeholder="Chercher un nom, un mot, un tag…" autocomplete="off">
         <div class="puces" id="puces-categories"></div>
         <div class="villes" id="villes"></div>
+
+        <span class="etiq-filtre">Trier par</span>
+        <div class="puces" id="puces-tri"></div>
+
+        <span class="etiq-filtre">Dernière visite</span>
+        <div class="puces" id="puces-recence"></div>
+
+        <span class="etiq-filtre">Note</span>
+        <div class="puces" id="puces-notes"></div>
       </div>
     </div>
 
@@ -1390,6 +1414,9 @@
   var filtreEtat = 'tout';
   var villes = [];
   var villesActives = [];
+  var triActif = 'alpha';       // 'alpha' | 'date' | 'note'
+  var filtreRecence = 'tout';   // 'tout' | 'semaine' | 'mois' | 'an' | 'ancien'
+  var filtresNotes = [];        // tableau vide = toutes les notes ; sinon, une des notes cochées
   var teinteChoisie = '#C24DE8';
   var enEdition = null;      // id du lieu en cours d'édition, null si nouveau
   var brouillon = null;      // objet en cours de saisie
@@ -1964,10 +1991,24 @@
      Filtres et liste
   --------------------------------------------------------------- */
 
+  /* La date de visite la plus récente d'un lieu, ou null s'il n'en a aucune. */
+  function derniereVisite(l) {
+    if (!l.dates || !l.dates.length) return null;
+    var max = null;
+    l.dates.forEach(function (d) { if (d && (!max || d > max)) max = d; });
+    return max;
+  }
+
+  function joursDepuis(dateIso) {
+    var d = new Date(dateIso + 'T00:00:00');
+    if (isNaN(d.getTime())) return Infinity;
+    return Math.floor((Date.now() - d.getTime()) / 86400000);
+  }
+
   function lieuxFiltres() {
     var q = filtreTexte.trim().toLowerCase();
 
-    return lieux.filter(function (l) {
+    var resultat = lieux.filter(function (l) {
       if (filtreEtat === 'atester' && l.note) return false;
       if (filtreEtat === 'teste' && !l.note) return false;
       if (filtresCategories.length > 0) {
@@ -1977,6 +2018,18 @@
           if (catsLieu.indexOf(filtresCategories[m]) !== -1) { auMoinsUne = true; break; }
         }
         if (!auMoinsUne) return false;
+      }
+
+      if (filtresNotes.length > 0 && filtresNotes.indexOf(l.note || 0) === -1) return false;
+
+      if (filtreRecence !== 'tout') {
+        var derniere = derniereVisite(l);
+        if (!derniere) return false;
+        var jours = joursDepuis(derniere);
+        if (filtreRecence === 'semaine' && jours > 7) return false;
+        if (filtreRecence === 'mois' && jours > 30) return false;
+        if (filtreRecence === 'an' && jours > 365) return false;
+        if (filtreRecence === 'ancien' && jours <= 365) return false;
       }
 
       if (villesActives.length > 0) {
@@ -1998,10 +2051,94 @@
       if (!q) return true;
       var foin = [l.nom, l.adresse, l.commentaire, (l.tags || []).join(' ')].join(' ').toLowerCase();
       return foin.indexOf(q) !== -1;
-    }).sort(function (a, b) {
-      return (b.note || 0) - (a.note || 0) || a.nom.localeCompare(b.nom, 'fr');
+    });
+
+    if (triActif === 'note') {
+      resultat.sort(function (a, b) { return (b.note || 0) - (a.note || 0) || a.nom.localeCompare(b.nom, 'fr'); });
+    } else if (triActif === 'date') {
+      resultat.sort(function (a, b) {
+        var da = derniereVisite(a), db = derniereVisite(b);
+        if (da && db) return db.localeCompare(da) || a.nom.localeCompare(b.nom, 'fr');
+        if (da && !db) return -1;
+        if (!da && db) return 1;
+        return a.nom.localeCompare(b.nom, 'fr');
+      });
+    } else {
+      resultat.sort(function (a, b) { return a.nom.localeCompare(b.nom, 'fr'); });
+    }
+
+    return resultat;
+  }
+
+  /* Petit aide générique pour dessiner une rangée de puces simples (texte seul,
+     sans pastille de couleur), utilisé pour le tri, la récence et les notes. */
+  function dessinerPucesSimples(idZone, choix, estActif, auClic) {
+    var zone = document.getElementById(idZone);
+    zone.innerHTML = '';
+    choix.forEach(function (c) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'puce';
+      var actif = estActif(c.id);
+      b.setAttribute('aria-pressed', actif ? 'true' : 'false');
+      if (actif) b.style.background = 'var(--accent)';
+      if (actif) b.style.color = '#FFFFFF';
+      b.appendChild(document.createTextNode(c.nom));
+      b.addEventListener('click', function () { auClic(c.id); rafraichir(); });
+      zone.appendChild(b);
     });
   }
+
+  function dessinerTri() {
+    dessinerPucesSimples('puces-tri', [
+      { id: 'alpha', nom: 'Alphabétique' },
+      { id: 'date', nom: 'Dernière visite' },
+      { id: 'note', nom: 'Note' }
+    ], function (id) { return triActif === id; }, function (id) { triActif = id; });
+  }
+
+  function dessinerRecence() {
+    dessinerPucesSimples('puces-recence', [
+      { id: 'tout', nom: 'Tout' },
+      { id: 'semaine', nom: 'Cette semaine' },
+      { id: 'mois', nom: 'Ce mois-ci' },
+      { id: 'an', nom: 'Cette année' },
+      { id: 'ancien', nom: 'Plus d\'un an' }
+    ], function (id) { return filtreRecence === id; }, function (id) { filtreRecence = id; });
+  }
+
+  function dessinerNotes() {
+    var zone = document.getElementById('puces-notes');
+    zone.innerHTML = '';
+
+    var tout = document.createElement('button');
+    tout.type = 'button';
+    tout.className = 'puce';
+    tout.setAttribute('aria-pressed', filtresNotes.length === 0 ? 'true' : 'false');
+    if (filtresNotes.length === 0) { tout.style.background = 'var(--accent)'; tout.style.color = '#FFFFFF'; }
+    tout.appendChild(document.createTextNode('Toutes'));
+    tout.addEventListener('click', function () { filtresNotes = []; rafraichir(); });
+    zone.appendChild(tout);
+
+    for (var n = 1; n <= 5; n++) {
+      (function (note) {
+        var actif = filtresNotes.indexOf(note) !== -1;
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'puce';
+        b.setAttribute('aria-pressed', actif ? 'true' : 'false');
+        if (actif) { b.style.background = 'var(--accent)'; b.style.color = '#FFFFFF'; }
+        b.innerHTML = fourchette(true, 14) + ' <span>' + note + '</span>';
+        b.addEventListener('click', function () {
+          var pos = filtresNotes.indexOf(note);
+          if (pos === -1) filtresNotes.push(note); else filtresNotes.splice(pos, 1);
+          rafraichir();
+        });
+        zone.appendChild(b);
+      })(n);
+    }
+  }
+
 
   function dessinerPuces() {
     var zone = document.getElementById('puces-categories');
@@ -2284,6 +2421,9 @@
     dessinerBascule();
     dessinerPuces();
     dessinerVilles();
+    dessinerTri();
+    dessinerRecence();
+    dessinerNotes();
     dessinerListe();
     dessinerEpingles();
 
