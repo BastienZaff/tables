@@ -908,19 +908,27 @@
   .bulle-adr { font-size: 12px; color: var(--texte-doux); margin-top: 5px; line-height: 1.45; }
   .bulle-mot { font-size: 12.5px; font-style: italic; margin-top: 9px; line-height: 1.5; color: var(--texte); }
   .bulle-date { font-size: 11.5px; color: var(--texte-doux); margin-top: 6px; }
+
+  .bulle-ligne-note { display: flex; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+  .bulle-ligne-note .fourchettes .ravioli { width: 17px !important; height: 17px !important; }
+  .bulle-ligne-note .a-tester { font-size: 13px; padding: 4px 12px; }
+  .bulle-separateur-v { width: 1px; height: 18px; background: var(--ligne); flex: none; }
+  .bulle-cats { display: flex; align-items: center; gap: 6px; }
+  .bulle-cat-nom { font-family: var(--label); font-weight: 600; font-size: 13px; color: var(--texte); }
+
   .bulle-separateur { height: 1px; background: var(--ligne); margin: 13px 0 11px; }
   .bulle-actions { display: flex; gap: 8px; align-items: center; }
   .bulle-bouton {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
+    gap: 6px;
     background: var(--pastille-forte);
     border: 0;
     border-radius: 999px;
-    padding: 6px 12px;
+    padding: 8px 14px;
     font-family: var(--label);
-    font-weight: 500;
-    font-size: 11.5px;
+    font-weight: 600;
+    font-size: 13px;
     letter-spacing: .01em;
     color: var(--texte);
     text-decoration: none;
@@ -1148,7 +1156,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v49</span>
+        <span class="version" id="version">v50</span>
       </header>
 
       <div class="filtres">
@@ -1191,6 +1199,9 @@
       <button class="commande" id="btn-fond" title="Style de carte" aria-label="Changer le style de carte"></button>
       <button class="commande" id="btn-noms" title="Afficher les noms sur la carte" aria-label="Afficher ou masquer les noms sur la carte" aria-pressed="false">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h7"/></svg>
+      </button>
+      <button class="commande" id="btn-position" title="Ma position" aria-label="Afficher ma position sur la carte" aria-pressed="false">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2.6"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3"/></svg>
       </button>
     </div>
     <div class="bandeau-pointage" id="bandeau-pointage">Clique sur la carte pour poser le point</div>
@@ -1580,6 +1591,14 @@
       'xlink:href="data:image/png;base64,' + b64 + '" href="data:image/png;base64,' + b64 + '"/>';
   }
 
+  /* Petite icône de catégorie autonome (pas dans un pin), pour la bulle. */
+  function iconeCategorieMini(c, taille) {
+    var t = taille || 16;
+    return '<svg width="' + t + '" height="' + t + '" viewBox="0 0 ' + t + ' ' + t + '" ' +
+      'xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">' +
+      iconeCategorieSvg(c.couleur, c.id, 0, 0, t) + '</svg>';
+  }
+
   /* Le pin est toujours blanc au centre ; seul le tour et l'icône portent la couleur
      de la catégorie. Plein et net pour une adresse testée, pâle et pointillé pour
      une adresse à tester. L'icône (une de tes images) est recolorée avec un filtre
@@ -1863,6 +1882,7 @@
     poserFond();
 
     coucheEpingles = L.layerGroup().addTo(carte);
+    couchePosition = L.layerGroup().addTo(carte);
 
     carte.on('click', function (e) {
       if (!modePointage) return;
@@ -1880,6 +1900,37 @@
       minuterieCollisions = setTimeout(recalculerCollisionsNoms, 60);
     });
     majZoomNoms();
+
+    carte.on('locationfound', function (e) {
+      var premiere = !pointBleu;
+      couchePosition.clearLayers();
+      L.circle(e.latlng, { radius: e.accuracy, color: '#4285F4', weight: 0, fillOpacity: .12 }).addTo(couchePosition);
+      pointBleu = L.circleMarker(e.latlng, {
+        radius: 8, color: '#FFFFFF', weight: 3, fillColor: '#4285F4', fillOpacity: 1
+      }).addTo(couchePosition);
+      if (premiere) carte.setView(e.latlng, Math.max(carte.getZoom(), 15));
+    });
+
+    carte.on('locationerror', function () {
+      annoncer('Impossible de te localiser. Vérifie que la localisation est autorisée pour ce site.');
+      suivrePosition = false;
+      appliquerPosition();
+    });
+  }
+
+  var couchePosition = null;
+  var pointBleu = null;
+  var suivrePosition = false;
+
+  function appliquerPosition() {
+    document.getElementById('btn-position').setAttribute('aria-pressed', suivrePosition ? 'true' : 'false');
+    if (suivrePosition) {
+      carte.locate({ watch: true, enableHighAccuracy: true, setView: false });
+    } else {
+      carte.stopLocate();
+      if (couchePosition) couchePosition.clearLayers();
+      pointBleu = null;
+    }
   }
 
   var SEUIL_ZOOM_NOMS = 14;
@@ -2054,7 +2105,17 @@
             '</svg>' +
             '<span class="bulle-nom">' + echapper(l.nom) + '</span></div>';
     if (l.adresse) h += '<div class="bulle-adr">' + echapper(formaterAdresseAffichage(l.adresse)) + '</div>';
-    h += '<div style="margin-top:9px">' + rangFourchettes(l.note) + '</div>';
+
+    var cats = (l.categories && l.categories.length ? l.categories : ['autre']).map(categorie);
+    var blocCats;
+    if (cats.length === 1) {
+      blocCats = iconeCategorieMini(cats[0]) + '<span class="bulle-cat-nom">' + echapper(cats[0].nom) + '</span>';
+    } else {
+      blocCats = cats.map(function (cc) { return iconeCategorieMini(cc); }).join('');
+    }
+    h += '<div class="bulle-ligne-note">' + rangFourchettes(l.note) +
+         '<span class="bulle-separateur-v"></span>' +
+         '<span class="bulle-cats">' + blocCats + '</span></div>';
     if (l.dates && l.dates.length === 1) {
       h += '<div class="bulle-date">Visité le ' + formaterDateFR(l.dates[0]) + '</div>';
     } else if (l.dates && l.dates.length > 1) {
@@ -3419,6 +3480,12 @@
     try { localStorage.setItem(CLE_NOMS, montrerNoms ? '1' : '0'); } catch (e) {}
     appliquerNoms();
     annoncer(montrerNoms ? 'Noms affichés sur la carte, une fois zoomé.' : 'Noms masqués sur la carte.');
+  });
+
+  document.getElementById('btn-position').addEventListener('click', function () {
+    suivrePosition = !suivrePosition;
+    appliquerPosition();
+    if (suivrePosition) annoncer('Localisation en cours…');
   });
 
   document.getElementById('btn-ajouter').addEventListener('click', ajouter);
