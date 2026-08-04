@@ -874,16 +874,18 @@
   .puce.gerer:hover { color: var(--accent); border-color: var(--accent-ligne); }
 
   .leaflet-popup-content-wrapper {
-    background: var(--surface);
+    background: linear-gradient(158deg, #FDEFFB 0%, #F4ECFD 42%, #E6EBFE 100%);
     color: var(--texte);
     border-radius: 18px;
     border: 0;
     box-shadow: var(--ombre);
   }
   .leaflet-popup-tip {
-    background: var(--surface);
+    background: #F4ECFD;
     box-shadow: var(--ombre);
   }
+  [data-theme="sombre"] .leaflet-popup-content-wrapper { background: var(--surface); }
+  [data-theme="sombre"] .leaflet-popup-tip { background: var(--surface); }
   .leaflet-popup-content { margin: 15px 34px 8px 17px; font-family: var(--body); line-height: 1.4; }
   .leaflet-popup-close-button {
     color: var(--texte-doux) !important;
@@ -1156,7 +1158,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v50</span>
+        <span class="version" id="version">v51</span>
       </header>
 
       <div class="filtres">
