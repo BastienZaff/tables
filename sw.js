@@ -1,7 +1,7 @@
 /* Dévoreur Explorer — fonctionnement hors connexion.
    Change le numéro de version ci-dessous après chaque modification. */
 
-var VERSION = 'tables-v46';
+var VERSION = 'tables-v47';
 
 var COQUILLE = [
   './',
@@ -40,7 +40,7 @@ self.addEventListener('activate', function (e) {
 self.addEventListener('fetch', function (e) {
   var url = e.request.url;
 
-  if (url.indexOf('photon.komoot.io') !== -1 || url.indexOf('nominatim.openstreetmap.org') !== -1) {
+  if (url.indexOf('photon.komoot.io') !== -1 || url.indexOf('nominatim.openstreetmap.org') !== -1 || url.indexOf('overpass-api.de') !== -1) {
     return;
   }
 

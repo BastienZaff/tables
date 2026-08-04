@@ -148,7 +148,7 @@
   .logo {
     display: block;
     width: 100%;
-    max-width: 168px;
+    max-width: 195px;
     height: auto;
   }
 
@@ -1139,7 +1139,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v46</span>
+        <span class="version" id="version">v47</span>
       </header>
 
       <div class="filtres">
@@ -1222,32 +1222,22 @@
   <div class="volet-corps">
 
     <div class="groupe" id="groupe-recherche">
-      <label class="etiq" for="champ-auto">Le nom du lieu</label>
+      <label class="etiq" for="champ-nom">Le nom du lieu</label>
       <div class="zone-auto">
-        <input class="saisie" id="champ-auto" type="text" placeholder="Septime, Ten Belles, Big Fernand…" autocomplete="off">
+        <input class="saisie" id="champ-nom" type="text" placeholder="Septime, Ten Belles, Big Fernand…" autocomplete="off">
         <div class="propositions" id="propositions"></div>
       </div>
-      <div class="aide">Tape les premières lettres, puis choisis dans la liste : l'adresse et le point se remplissent tout seuls.</div>
+      <div class="aide">Tape le nom. Une suggestion te convient ? Choisis-la : l'adresse et le point se remplissent tout seuls. Sinon, continue à taper, ce sera le nom enregistré.</div>
     </div>
 
     <div class="groupe" id="groupe-recherche-adresse">
-      <label class="etiq" for="champ-auto-adresse">Tu ne trouves pas le nom ? Cherche l'adresse</label>
+      <label class="etiq" for="champ-adresse">Tu ne trouves pas le nom ? Cherche l'adresse</label>
       <div class="zone-auto">
-        <input class="saisie" id="champ-auto-adresse" type="text" placeholder="12 rue de la Paix, Paris…" autocomplete="off">
+        <input class="saisie" id="champ-adresse" type="text" placeholder="12 rue de la Paix, Paris…" autocomplete="off">
         <div class="propositions" id="propositions-adresse"></div>
       </div>
-      <div class="aide">Choisis l'adresse dans la liste : le point se pose tout seul, il ne te reste plus qu'à écrire le nom en dessous.</div>
-    </div>
-
-    <div class="groupe">
-      <label class="etiq" for="champ-nom">Nom</label>
-      <input class="saisie" id="champ-nom" type="text">
-    </div>
-
-    <div class="groupe">
-      <label class="etiq" for="champ-adresse">Adresse</label>
-      <input class="saisie" id="champ-adresse" type="text">
-      <div class="aide" id="aide-point">Aucun point posé sur la carte.</div>
+      <div class="aide" id="aide-point">Tape l'adresse : les restaurants qui s'y trouvent s'affichent pour que tu choisisses. Rien de bon dans la liste ? Continue à taper, ce sera l'adresse enregistrée — pose alors le point avec « Poser à la main ».</div>
+      <div class="aide" id="etat-point" style="margin-top:6px"></div>
     </div>
 
     <div class="groupe">
@@ -2680,7 +2670,6 @@
             brouillon.lng = r.lng;
             if (!enEdition) brouillon.categories = [r.categorie];
             zone.innerHTML = '';
-            document.getElementById('champ-auto').value = '';
             remplirVolet();
             document.getElementById('champ-commentaire').focus();
           });
@@ -2692,9 +2681,40 @@
       });
   }
 
+  /* Cherche les restaurants, cafés, bars… à moins de 45 m d'un point, via
+     Overpass (l'interrogateur public des données OpenStreetMap, gratuit,
+     sans clé). */
+  function chercherOverpass(lat, lon) {
+    var requete = '[out:json][timeout:12];node(around:45,' + lat + ',' + lon +
+      ')[amenity~"^(restaurant|cafe|fast_food|bar|pub|bakery)$"];out body 15;';
+    var url = 'https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(requete);
+
+    return fetch(url).then(function (r) {
+      if (!r.ok) throw new Error('overpass');
+      return r.json();
+    }).then(function (d) {
+      return (d.elements || [])
+        .filter(function (e) { return e.tags && e.tags.name; })
+        .map(function (e) {
+          var t = e.tags;
+          var rue = [t['addr:housenumber'], t['addr:street']].filter(Boolean).join(' ');
+          var ville = [t['addr:postcode'], t['addr:city']].filter(Boolean).join(' ');
+          return {
+            nom: t.name,
+            adresse: [rue, ville].filter(Boolean).join(', '),
+            lat: e.lat,
+            lng: e.lon,
+            categorie: connue(deviner('amenity', t.amenity))
+          };
+        });
+    });
+  }
+
   /* Recherche par adresse plutôt que par nom : utile quand le lieu n'est pas
      répertorié sous son nom (chaînes peu connues, ouvertures récentes…).
-     Ne remplit que l'adresse et le point ; le nom reste à écrire à la main. */
+     Cherche d'abord les vrais restaurants/cafés/bars à cette adresse (via
+     Overpass) ; si l'un d'eux correspond, il remplit tout comme la recherche
+     par nom. Sinon, l'adresse seule se remplit et le nom reste à écrire. */
   function afficherPropositionsAdresse(texte) {
     var zone = document.getElementById('propositions-adresse');
 
@@ -2703,31 +2723,55 @@
 
     chercherPhoton(texte)
       .catch(function () { return chercherNominatim(texte); })
-      .then(function (resultats) {
-        zone.innerHTML = '';
-
-        if (!resultats || resultats.length === 0) {
+      .then(function (resultatsAdresse) {
+        if (!resultatsAdresse || resultatsAdresse.length === 0) {
           zone.innerHTML = '<div class="proposition"><span class="p-etat">Rien trouvé à cette adresse. Pose le point avec « Poser à la main ».</span></div>';
           return;
         }
 
-        resultats.forEach(function (r) {
-          var b = document.createElement('button');
-          b.className = 'proposition';
-          b.type = 'button';
-          b.innerHTML = '<div class="p-nom">' + echapper(r.adresse || r.nom) + '</div>';
-          b.addEventListener('click', function () {
-            lireVolet();
-            brouillon.adresse = r.adresse || r.nom;
-            brouillon.lat = r.lat;
-            brouillon.lng = r.lng;
+        var principale = resultatsAdresse[0];
+
+        chercherOverpass(principale.lat, principale.lng)
+          .catch(function () { return []; })
+          .then(function (restos) {
             zone.innerHTML = '';
-            document.getElementById('champ-auto-adresse').value = '';
-            remplirVolet();
-            document.getElementById('champ-nom').focus();
+
+            restos.forEach(function (r) {
+              var b = document.createElement('button');
+              b.className = 'proposition';
+              b.type = 'button';
+              b.innerHTML = '<div class="p-nom">' + echapper(r.nom) + '</div>' +
+                            (r.adresse ? '<div class="p-adr">' + echapper(r.adresse) + '</div>' : '');
+              b.addEventListener('click', function () {
+                lireVolet();
+                brouillon.nom = r.nom;
+                brouillon.adresse = r.adresse || principale.adresse;
+                brouillon.lat = r.lat;
+                brouillon.lng = r.lng;
+                if (!enEdition) brouillon.categories = [r.categorie];
+                zone.innerHTML = '';
+                remplirVolet();
+                document.getElementById('champ-commentaire').focus();
+              });
+              zone.appendChild(b);
+            });
+
+            var libre = document.createElement('button');
+            libre.className = 'proposition';
+            libre.type = 'button';
+            libre.innerHTML = (restos.length ? '<div class="p-nom">Aucun de ceux-là — utiliser cette adresse</div>' : '<div class="p-nom">Utiliser cette adresse</div>') +
+                              '<div class="p-adr">' + echapper(principale.adresse) + '</div>';
+            libre.addEventListener('click', function () {
+              lireVolet();
+              brouillon.adresse = principale.adresse;
+              brouillon.lat = principale.lat;
+              brouillon.lng = principale.lng;
+              zone.innerHTML = '';
+              remplirVolet();
+              document.getElementById('champ-nom').focus();
+            });
+            zone.appendChild(libre);
           });
-          zone.appendChild(b);
-        });
       })
       .catch(function () {
         zone.innerHTML = '<div class="proposition"><span class="p-etat">La recherche est injoignable. Pose le point avec « Poser à la main ».</span></div>';
@@ -2785,11 +2829,9 @@
     brouillon = nouveauBrouillon();
     document.getElementById('volet-titre').textContent = 'Nouvelle adresse';
     document.getElementById('btn-supprimer').hidden = true;
-    document.getElementById('groupe-recherche').hidden = false;
-    document.getElementById('groupe-recherche-adresse').hidden = false;
     remplirVolet();
     ouvrirVolet();
-    setTimeout(function () { document.getElementById('champ-auto').focus(); }, 300);
+    setTimeout(function () { document.getElementById('champ-nom').focus(); }, 300);
   }
 
   function modifier(identifiant) {
@@ -2799,8 +2841,6 @@
     brouillon = JSON.parse(JSON.stringify(l));
     document.getElementById('volet-titre').textContent = 'Modifier';
     document.getElementById('btn-supprimer').hidden = false;
-    document.getElementById('groupe-recherche').hidden = true;
-    document.getElementById('groupe-recherche-adresse').hidden = true;
     remplirVolet();
     ouvrirVolet();
   }
@@ -2892,7 +2932,7 @@
       zoneDates.appendChild(ligne);
     });
 
-    document.getElementById('aide-point').textContent =
+    document.getElementById('etat-point').textContent =
       typeof brouillon.lat === 'number'
         ? 'Point posé sur la carte.'
         : 'Aucun point posé : choisis un lieu dans la liste, ou utilise « Poser à la main ».';
@@ -3423,14 +3463,14 @@
     e.target.value = '';
   });
 
-  document.getElementById('champ-auto').addEventListener('input', function (e) {
+  document.getElementById('champ-nom').addEventListener('input', function (e) {
     var v = e.target.value;
     clearTimeout(minuterieAuto);
     minuterieAuto = setTimeout(function () { afficherPropositions(v); }, 320);
   });
 
   var minuterieAutoAdresse;
-  document.getElementById('champ-auto-adresse').addEventListener('input', function (e) {
+  document.getElementById('champ-adresse').addEventListener('input', function (e) {
     var v = e.target.value;
     clearTimeout(minuterieAutoAdresse);
     minuterieAutoAdresse = setTimeout(function () { afficherPropositionsAdresse(v); }, 320);
