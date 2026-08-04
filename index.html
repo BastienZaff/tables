@@ -678,6 +678,7 @@
 
   /* autocomplétion */
   .zone-auto { position: relative; }
+  .groupe-cp-ville { display: flex; gap: 10px; }
 
   .propositions {
     position: absolute;
@@ -707,6 +708,14 @@
   .proposition .p-nom { font-family: var(--display); font-weight: 600; font-size: 14.5px; letter-spacing: 0; }
   .proposition .p-adr { font-size: 11.5px; color: var(--texte-doux); margin-top: 2px; }
   .proposition .p-etat { font-size: 12px; color: var(--texte-doux); font-style: italic; }
+  .proposition-manuelle {
+    color: var(--accent);
+    font-family: var(--label);
+    font-weight: 600;
+    font-size: 13px;
+    background: var(--accent-doux);
+  }
+  .proposition-manuelle:hover, .proposition-manuelle:focus { background: var(--accent-doux); filter: brightness(.97); }
 
   /* note en fourchettes, saisie */
   .note-choix { display: flex; gap: 4px; align-items: center; }
@@ -1139,7 +1148,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v47</span>
+        <span class="version" id="version">v48</span>
       </header>
 
       <div class="filtres">
@@ -1227,17 +1236,31 @@
         <input class="saisie" id="champ-nom" type="text" placeholder="Septime, Ten Belles, Big Fernand…" autocomplete="off">
         <div class="propositions" id="propositions"></div>
       </div>
-      <div class="aide">Tape le nom. Une suggestion te convient ? Choisis-la : l'adresse et le point se remplissent tout seuls. Sinon, continue à taper, ce sera le nom enregistré.</div>
     </div>
 
-    <div class="groupe" id="groupe-recherche-adresse">
-      <label class="etiq" for="champ-adresse">Tu ne trouves pas le nom ? Cherche l'adresse</label>
+    <div class="groupe">
+      <label class="etiq" for="champ-rue">Adresse</label>
       <div class="zone-auto">
-        <input class="saisie" id="champ-adresse" type="text" placeholder="12 rue de la Paix, Paris…" autocomplete="off">
-        <div class="propositions" id="propositions-adresse"></div>
+        <input class="saisie" id="champ-rue" type="text" placeholder="12 rue de la Paix" autocomplete="off">
+        <div class="propositions" id="propositions-rue"></div>
       </div>
-      <div class="aide" id="aide-point">Tape l'adresse : les restaurants qui s'y trouvent s'affichent pour que tu choisisses. Rien de bon dans la liste ? Continue à taper, ce sera l'adresse enregistrée — pose alors le point avec « Poser à la main ».</div>
-      <div class="aide" id="etat-point" style="margin-top:6px"></div>
+    </div>
+
+    <div class="groupe groupe-cp-ville">
+      <div class="zone-auto" style="flex: 1">
+        <label class="etiq" for="champ-cp">Code postal</label>
+        <input class="saisie" id="champ-cp" type="text" placeholder="75008" autocomplete="off" inputmode="numeric">
+        <div class="propositions" id="propositions-cp"></div>
+      </div>
+      <div class="zone-auto" style="flex: 2">
+        <label class="etiq" for="champ-ville">Ville</label>
+        <input class="saisie" id="champ-ville" type="text" placeholder="Paris" autocomplete="off">
+        <div class="propositions" id="propositions-ville"></div>
+      </div>
+    </div>
+
+    <div class="groupe">
+      <div class="aide" id="etat-point">Aucun point posé sur la carte.</div>
     </div>
 
     <div class="groupe">
@@ -1273,7 +1296,7 @@
 
   <div class="volet-pied">
     <button class="bouton-principal" id="btn-enregistrer">Enregistrer</button>
-    <button class="bouton-fantome" id="btn-pointer">Poser à la main</button>
+    <button class="bouton-fantome" id="btn-pointer">Enregistrer manuellement</button>
     <button class="bouton-fantome danger" id="btn-supprimer" hidden>Supprimer</button>
   </div>
 </section>
@@ -1754,6 +1777,23 @@
       }
     }
     return adresse;
+  }
+
+  /* Sépare une adresse enregistrée « rue, code postal ville[, pays] » en trois
+     morceaux pour les trois champs du formulaire. Recomposer fait l'inverse. */
+  function decomposerAdresse(adresse) {
+    if (!adresse) return { rue: '', cp: '', ville: '' };
+    var parties = adresse.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+    for (var i = 0; i < parties.length; i++) {
+      var m = parties[i].match(/^(\d{5})\s+(.+)$/);
+      if (m) return { rue: parties.slice(0, i).join(', '), cp: m[1], ville: m[2] };
+    }
+    return { rue: adresse, cp: '', ville: '' };
+  }
+
+  function recomposerAdresse(rue, cp, ville) {
+    var villeCp = [cp, ville].filter(Boolean).join(' ');
+    return [rue, villeCp].filter(Boolean).join(', ');
   }
 
   /* ---------------------------------------------------------------
@@ -2648,15 +2688,24 @@
 
     chercherPhoton(texte)
       .catch(function () { return chercherNominatim(texte); })
+      .catch(function () { return []; })
       .then(function (resultats) {
         zone.innerHTML = '';
 
-        if (!resultats || resultats.length === 0) {
-          zone.innerHTML = '<div class="proposition"><span class="p-etat">Rien trouvé. Saisis le nom et l\'adresse à la main, puis pose le point avec « Poser à la main ».</span></div>';
-          return;
-        }
+        var manuel = document.createElement('button');
+        manuel.className = 'proposition proposition-manuelle';
+        manuel.type = 'button';
+        manuel.textContent = 'Ajouter « ' + texte.trim() + ' » manuellement';
+        manuel.addEventListener('click', function () {
+          lireVolet();
+          brouillon.nom = texte.trim();
+          zone.innerHTML = '';
+          remplirVolet();
+          document.getElementById('champ-rue').focus();
+        });
+        zone.appendChild(manuel);
 
-        resultats.forEach(function (r) {
+        (resultats || []).forEach(function (r) {
           var b = document.createElement('button');
           b.className = 'proposition';
           b.type = 'button';
@@ -2671,111 +2720,87 @@
             if (!enEdition) brouillon.categories = [r.categorie];
             zone.innerHTML = '';
             remplirVolet();
-            document.getElementById('champ-commentaire').focus();
+            document.getElementById('champ-categorie').scrollIntoView({ behavior: 'smooth', block: 'center' });
           });
           zone.appendChild(b);
         });
-      })
-      .catch(function () {
-        zone.innerHTML = '<div class="proposition"><span class="p-etat">La recherche est injoignable. Saisis le nom et l\'adresse à la main, puis pose le point avec « Poser à la main ».</span></div>';
       });
   }
 
-  /* Cherche les restaurants, cafés, bars… à moins de 45 m d'un point, via
-     Overpass (l'interrogateur public des données OpenStreetMap, gratuit,
-     sans clé). */
-  function chercherOverpass(lat, lon) {
-    var requete = '[out:json][timeout:12];node(around:45,' + lat + ',' + lon +
-      ')[amenity~"^(restaurant|cafe|fast_food|bar|pub|bakery)$"];out body 15;';
-    var url = 'https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(requete);
-
+  /* Les trois champs adresse / code postal / ville s'entraident, via l'API
+     Adresse du gouvernement français (déjà utilisée ailleurs dans l'appli
+     pour les villes favorites) : gratuite, sans clé. Choisir une rue pose
+     directement le point sur la carte ; choisir une ville ou un code postal
+     complète juste les deux autres champs, sans toucher au point. */
+  function chercherAdresseGouv(q, params) {
+    var url = 'https://api-adresse.data.gouv.fr/search/?limit=6&q=' + encodeURIComponent(q) + (params || '');
     return fetch(url).then(function (r) {
-      if (!r.ok) throw new Error('overpass');
+      if (!r.ok) throw new Error('adresse-gouv');
       return r.json();
-    }).then(function (d) {
-      return (d.elements || [])
-        .filter(function (e) { return e.tags && e.tags.name; })
-        .map(function (e) {
-          var t = e.tags;
-          var rue = [t['addr:housenumber'], t['addr:street']].filter(Boolean).join(' ');
-          var ville = [t['addr:postcode'], t['addr:city']].filter(Boolean).join(' ');
-          return {
-            nom: t.name,
-            adresse: [rue, ville].filter(Boolean).join(', '),
-            lat: e.lat,
-            lng: e.lon,
-            categorie: connue(deviner('amenity', t.amenity))
-          };
-        });
-    });
+    }).then(function (d) { return d.features || []; });
   }
 
-  /* Recherche par adresse plutôt que par nom : utile quand le lieu n'est pas
-     répertorié sous son nom (chaînes peu connues, ouvertures récentes…).
-     Cherche d'abord les vrais restaurants/cafés/bars à cette adresse (via
-     Overpass) ; si l'un d'eux correspond, il remplit tout comme la recherche
-     par nom. Sinon, l'adresse seule se remplit et le nom reste à écrire. */
-  function afficherPropositionsAdresse(texte) {
-    var zone = document.getElementById('propositions-adresse');
-
+  function afficherPropositionsRue(texte) {
+    var zone = document.getElementById('propositions-rue');
     if (texte.trim().length < 3) { zone.innerHTML = ''; return; }
     zone.innerHTML = '<div class="proposition"><span class="p-etat">Recherche…</span></div>';
 
-    chercherPhoton(texte)
-      .catch(function () { return chercherNominatim(texte); })
-      .then(function (resultatsAdresse) {
-        if (!resultatsAdresse || resultatsAdresse.length === 0) {
-          zone.innerHTML = '<div class="proposition"><span class="p-etat">Rien trouvé à cette adresse. Pose le point avec « Poser à la main ».</span></div>';
-          return;
-        }
-
-        var principale = resultatsAdresse[0];
-
-        chercherOverpass(principale.lat, principale.lng)
-          .catch(function () { return []; })
-          .then(function (restos) {
-            zone.innerHTML = '';
-
-            restos.forEach(function (r) {
-              var b = document.createElement('button');
-              b.className = 'proposition';
-              b.type = 'button';
-              b.innerHTML = '<div class="p-nom">' + echapper(r.nom) + '</div>' +
-                            (r.adresse ? '<div class="p-adr">' + echapper(r.adresse) + '</div>' : '');
-              b.addEventListener('click', function () {
-                lireVolet();
-                brouillon.nom = r.nom;
-                brouillon.adresse = r.adresse || principale.adresse;
-                brouillon.lat = r.lat;
-                brouillon.lng = r.lng;
-                if (!enEdition) brouillon.categories = [r.categorie];
-                zone.innerHTML = '';
-                remplirVolet();
-                document.getElementById('champ-commentaire').focus();
-              });
-              zone.appendChild(b);
-            });
-
-            var libre = document.createElement('button');
-            libre.className = 'proposition';
-            libre.type = 'button';
-            libre.innerHTML = (restos.length ? '<div class="p-nom">Aucun de ceux-là — utiliser cette adresse</div>' : '<div class="p-nom">Utiliser cette adresse</div>') +
-                              '<div class="p-adr">' + echapper(principale.adresse) + '</div>';
-            libre.addEventListener('click', function () {
-              lireVolet();
-              brouillon.adresse = principale.adresse;
-              brouillon.lat = principale.lat;
-              brouillon.lng = principale.lng;
-              zone.innerHTML = '';
-              remplirVolet();
-              document.getElementById('champ-nom').focus();
-            });
-            zone.appendChild(libre);
-          });
-      })
-      .catch(function () {
-        zone.innerHTML = '<div class="proposition"><span class="p-etat">La recherche est injoignable. Pose le point avec « Poser à la main ».</span></div>';
+    chercherAdresseGouv(texte).then(function (features) {
+      zone.innerHTML = '';
+      if (!features.length) {
+        zone.innerHTML = '<div class="proposition"><span class="p-etat">Rien trouvé. Complète les champs toi-même.</span></div>';
+        return;
+      }
+      features.forEach(function (f) {
+        var p = f.properties;
+        var b = document.createElement('button');
+        b.className = 'proposition';
+        b.type = 'button';
+        b.innerHTML = '<div class="p-nom">' + echapper(p.name) + '</div><div class="p-adr">' + echapper(p.postcode + ' ' + p.city) + '</div>';
+        b.addEventListener('click', function () {
+          lireVolet();
+          document.getElementById('champ-rue').value = p.name;
+          document.getElementById('champ-cp').value = p.postcode;
+          document.getElementById('champ-ville').value = p.city;
+          lireVolet();
+          brouillon.lat = f.geometry.coordinates[1];
+          brouillon.lng = f.geometry.coordinates[0];
+          zone.innerHTML = '';
+          remplirVolet();
+        });
+        zone.appendChild(b);
       });
+    }).catch(function () {
+      zone.innerHTML = '<div class="proposition"><span class="p-etat">Recherche injoignable. Complète les champs toi-même.</span></div>';
+    });
+  }
+
+  function afficherPropositionsVille(texte, idZone, idCle) {
+    var zone = document.getElementById(idZone);
+    if (texte.trim().length < 2) { zone.innerHTML = ''; return; }
+    zone.innerHTML = '<div class="proposition"><span class="p-etat">Recherche…</span></div>';
+
+    chercherAdresseGouv(texte, '&type=municipality').then(function (features) {
+      zone.innerHTML = '';
+      if (!features.length) { zone.innerHTML = ''; return; }
+      features.forEach(function (f) {
+        var p = f.properties;
+        var b = document.createElement('button');
+        b.className = 'proposition';
+        b.type = 'button';
+        b.innerHTML = '<div class="p-nom">' + echapper(p.city || p.name) + '</div><div class="p-adr">' + echapper(p.postcode) + '</div>';
+        b.addEventListener('click', function () {
+          lireVolet();
+          document.getElementById('champ-ville').value = p.city || p.name;
+          document.getElementById('champ-cp').value = p.postcode;
+          lireVolet();
+          zone.innerHTML = '';
+          remplirVolet();
+          document.getElementById(idCle).focus();
+        });
+        zone.appendChild(b);
+      });
+    }).catch(function () { zone.innerHTML = ''; });
   }
 
   /* ---------------------------------------------------------------
@@ -2818,7 +2843,9 @@
     document.getElementById('volet').setAttribute('aria-hidden', 'true');
     document.getElementById('voile').classList.remove('ouvert');
     document.getElementById('propositions').innerHTML = '';
-    document.getElementById('propositions-adresse').innerHTML = '';
+    document.getElementById('propositions-rue').innerHTML = '';
+    document.getElementById('propositions-cp').innerHTML = '';
+    document.getElementById('propositions-ville').innerHTML = '';
     arreterPointage();
     enEdition = null;
     brouillon = null;
@@ -2847,7 +2874,10 @@
 
   function remplirVolet() {
     document.getElementById('champ-nom').value = brouillon.nom || '';
-    document.getElementById('champ-adresse').value = brouillon.adresse || '';
+    var d = decomposerAdresse(brouillon.adresse);
+    document.getElementById('champ-rue').value = d.rue;
+    document.getElementById('champ-cp').value = d.cp;
+    document.getElementById('champ-ville').value = d.ville;
     document.getElementById('champ-commentaire').value = brouillon.commentaire || '';
     document.getElementById('champ-tags').value = (brouillon.tags || []).join(', ');
 
@@ -2935,25 +2965,22 @@
     document.getElementById('etat-point').textContent =
       typeof brouillon.lat === 'number'
         ? 'Point posé sur la carte.'
-        : 'Aucun point posé : choisis un lieu dans la liste, ou utilise « Poser à la main ».';
+        : 'Aucun point posé : choisis un lieu dans la liste, ou utilise « Enregistrer manuellement ».';
   }
 
   function lireVolet() {
     brouillon.nom = document.getElementById('champ-nom').value.trim();
-    brouillon.adresse = document.getElementById('champ-adresse').value.trim();
-    brouillon.cp = codePostal(brouillon.adresse);
+    var rue = document.getElementById('champ-rue').value.trim();
+    var cp = document.getElementById('champ-cp').value.trim();
+    var ville = document.getElementById('champ-ville').value.trim();
+    brouillon.adresse = recomposerAdresse(rue, cp, ville);
+    brouillon.cp = cp || codePostal(brouillon.adresse);
     brouillon.commentaire = document.getElementById('champ-commentaire').value.trim();
     brouillon.tags = document.getElementById('champ-tags').value
       .split(',').map(function (t) { return t.trim(); }).filter(Boolean);
   }
 
-  function valider() {
-    lireVolet();
-
-    if (!brouillon.nom) { annoncer('Il manque le nom.'); document.getElementById('champ-nom').focus(); return; }
-    if (typeof brouillon.lat !== 'number') { annoncer('Il manque le point sur la carte. Utilise « Poser à la main ».'); return; }
-    if (!brouillon.categories || brouillon.categories.length === 0) { annoncer('Choisis au moins une catégorie.'); return; }
-
+  function finaliserEnregistrement() {
     if (enEdition) {
       for (var i = 0; i < lieux.length; i++) {
         if (lieux[i].identifiant === enEdition) { lieux[i] = brouillon; break; }
@@ -2961,7 +2988,7 @@
       annoncer('Modifié.');
     } else {
       lieux.push(brouillon);
-      annoncer('« ' + brouillon.nom +' » ajouté.');
+      annoncer('« ' + brouillon.nom + ' » ajouté.');
     }
 
     var pos = [brouillon.lat, brouillon.lng];
@@ -2969,6 +2996,37 @@
     fermerVolet();
     rafraichir();
     carte.setView(pos, 16);
+  }
+
+  function valider() {
+    lireVolet();
+
+    if (!brouillon.nom) { annoncer('Il manque le nom.'); document.getElementById('champ-nom').focus(); return; }
+    if (!brouillon.categories || brouillon.categories.length === 0) { annoncer('Choisis au moins une catégorie.'); return; }
+
+    if (typeof brouillon.lat === 'number') {
+      finaliserEnregistrement();
+      return;
+    }
+
+    if (!brouillon.adresse) {
+      annoncer('Il manque le point sur la carte. Renseigne l\'adresse, ou utilise « Enregistrer manuellement ».');
+      return;
+    }
+
+    annoncer('Repérage de l\'adresse…');
+    chercherPhoton(brouillon.adresse)
+      .catch(function () { return chercherNominatim(brouillon.adresse); })
+      .catch(function () { return []; })
+      .then(function (resultats) {
+        if (resultats && resultats.length && typeof resultats[0].lat === 'number') {
+          brouillon.lat = resultats[0].lat;
+          brouillon.lng = resultats[0].lng;
+          finaliserEnregistrement();
+        } else {
+          annoncer('Adresse introuvable. Utilise « Enregistrer manuellement » pour placer le point toi-même.');
+        }
+      });
   }
 
   function supprimer() {
@@ -3469,11 +3527,25 @@
     minuterieAuto = setTimeout(function () { afficherPropositions(v); }, 320);
   });
 
-  var minuterieAutoAdresse;
-  document.getElementById('champ-adresse').addEventListener('input', function (e) {
+  var minuterieAutoRue;
+  document.getElementById('champ-rue').addEventListener('input', function (e) {
     var v = e.target.value;
-    clearTimeout(minuterieAutoAdresse);
-    minuterieAutoAdresse = setTimeout(function () { afficherPropositionsAdresse(v); }, 320);
+    clearTimeout(minuterieAutoRue);
+    minuterieAutoRue = setTimeout(function () { afficherPropositionsRue(v); }, 320);
+  });
+
+  var minuterieAutoCp;
+  document.getElementById('champ-cp').addEventListener('input', function (e) {
+    var v = e.target.value;
+    clearTimeout(minuterieAutoCp);
+    minuterieAutoCp = setTimeout(function () { afficherPropositionsVille(v, 'propositions-cp', 'champ-rue'); }, 320);
+  });
+
+  var minuterieAutoVille;
+  document.getElementById('champ-ville').addEventListener('input', function (e) {
+    var v = e.target.value;
+    clearTimeout(minuterieAutoVille);
+    minuterieAutoVille = setTimeout(function () { afficherPropositionsVille(v, 'propositions-ville', 'champ-rue'); }, 320);
   });
 
   function ouvrirListe() {
