@@ -1148,7 +1148,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v48</span>
+        <span class="version" id="version">v49</span>
       </header>
 
       <div class="filtres">
@@ -2812,7 +2812,7 @@
       identifiant: id(),
       nom: '', adresse: '',
       lat: null, lng: null,
-      categories: ['restaurant'],
+      categories: [],
       note: 0, commentaire: '', tags: [], dates: []
     };
   }
@@ -2964,7 +2964,7 @@
 
     document.getElementById('etat-point').textContent =
       typeof brouillon.lat === 'number'
-        ? 'Point posé sur la carte.'
+        ? ''
         : 'Aucun point posé : choisis un lieu dans la liste, ou utilise « Enregistrer manuellement ».';
   }
 
