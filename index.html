@@ -288,6 +288,32 @@
   }
   .date-ajouter:hover { filter: brightness(.96); color: var(--texte); border-color: var(--accent-ligne); }
 
+  #pays-liste { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .puce-pays {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--pastille);
+    border-radius: 999px;
+    padding: 5px 8px 5px 12px;
+    font-family: var(--body);
+    font-size: 13.5px;
+    color: var(--texte);
+  }
+  .puce-pays .croix {
+    display: grid;
+    place-items: center;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    color: var(--texte-doux);
+    font-size: 14px;
+    line-height: 1;
+    flex: none;
+    background: transparent;
+    border: 0;
+  }
+  .puce-pays .croix:hover { background: var(--pastille-forte); color: var(--danger); }
+
   .invite-villes {
     width: 100%;
     padding: 13px 16px;
@@ -1178,7 +1204,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v58</span>
+        <span class="version" id="version">v59</span>
       </header>
 
       <div class="filtres">
@@ -1318,6 +1344,16 @@
       <div id="dates-liste"></div>
       <button class="date-ajouter" type="button" id="date-ajouter">+ Ajouter une date</button>
       <div class="aide">La première se pose toute seule dès que tu mets une note. Ajoutes-en d'autres si tu y es retourné.</div>
+    </div>
+
+    <div class="groupe">
+      <label class="etiq" for="champ-pays">Pays d'origine</label>
+      <div class="zone-auto">
+        <input class="saisie" id="champ-pays" type="text" placeholder="Italie, Japon, Liban…" autocomplete="off">
+        <div class="propositions" id="propositions-pays"></div>
+      </div>
+      <div id="pays-liste"></div>
+      <div class="aide">La cuisine d'origine du lieu — utile pour repérer d'un coup d'œil ce que tu as déjà goûté.</div>
     </div>
 
     <div class="groupe">
@@ -1569,6 +1605,7 @@
       l.categories = l.categorie ? [l.categorie] : ['autre'];
     }
     if (l && !Array.isArray(l.dates)) l.dates = [];
+    if (l && !Array.isArray(l.pays)) l.pays = [];
     return l;
   }
 
@@ -2157,6 +2194,9 @@
       h += '<div class="bulle-date">' + l.dates.length + ' visites</div>';
     }
     if (l.commentaire) h += '<div class="bulle-mot">' + echapper(l.commentaire) + '</div>';
+    if (l.pays && l.pays.length) {
+      h += '<div class="bulle-date">' + l.pays.map(drapeauEmoji).join(' ') + '</div>';
+    }
     h += '<div class="bulle-separateur"></div>';
     var idClip = 'clip-pin-' + (compteurFiltresEpingle++);
     h += '<div class="bulle-actions">' +
@@ -2899,9 +2939,254 @@
     }).catch(function () { zone.innerHTML = ''; });
   }
 
+  /* Recherche de pays : purement locale (la liste tient dans l'appli), donc
+     instantanée, insensible aux accents et à la casse. */
+  function afficherPropositionsPays(texte) {
+    var zone = document.getElementById('propositions-pays');
+    var q = normaliser(texte);
+    if (q.length < 1) { zone.innerHTML = ''; return; }
+
+    var deja = brouillon.pays || [];
+    var resultats = PAYS_MONDE
+      .filter(function (p) { return deja.indexOf(p.code) === -1 && normaliser(p.nom).indexOf(q) !== -1; })
+      .slice(0, 8);
+
+    zone.innerHTML = '';
+    if (!resultats.length) {
+      zone.innerHTML = '<div class="proposition"><span class="p-etat">Aucun pays trouvé.</span></div>';
+      return;
+    }
+
+    resultats.forEach(function (p) {
+      var b = document.createElement('button');
+      b.className = 'proposition';
+      b.type = 'button';
+      b.innerHTML = '<div class="p-nom">' + drapeauEmoji(p.code) + ' ' + echapper(p.nom) + '</div>';
+      b.addEventListener('click', function () {
+        if (!brouillon.pays) brouillon.pays = [];
+        brouillon.pays.push(p.code);
+        document.getElementById('champ-pays').value = '';
+        zone.innerHTML = '';
+        remplirVolet();
+        document.getElementById('champ-pays').focus();
+      });
+      zone.appendChild(b);
+    });
+  }
+
   /* ---------------------------------------------------------------
      Volet d'édition
   --------------------------------------------------------------- */
+
+  var PAYS_MONDE = [
+    { code: 'AF', nom: 'Afghanistan' },
+    { code: 'ZA', nom: 'Afrique du Sud' },
+    { code: 'AL', nom: 'Albanie' },
+    { code: 'DZ', nom: 'Algérie' },
+    { code: 'DE', nom: 'Allemagne' },
+    { code: 'AD', nom: 'Andorre' },
+    { code: 'AO', nom: 'Angola' },
+    { code: 'AG', nom: 'Antigua-et-Barbuda' },
+    { code: 'SA', nom: 'Arabie saoudite' },
+    { code: 'AR', nom: 'Argentine' },
+    { code: 'AM', nom: 'Arménie' },
+    { code: 'AU', nom: 'Australie' },
+    { code: 'AT', nom: 'Autriche' },
+    { code: 'AZ', nom: 'Azerbaïdjan' },
+    { code: 'BS', nom: 'Bahamas' },
+    { code: 'BH', nom: 'Bahreïn' },
+    { code: 'BD', nom: 'Bangladesh' },
+    { code: 'BB', nom: 'Barbade' },
+    { code: 'BE', nom: 'Belgique' },
+    { code: 'BZ', nom: 'Belize' },
+    { code: 'BT', nom: 'Bhoutan' },
+    { code: 'MM', nom: 'Birmanie' },
+    { code: 'BY', nom: 'Biélorussie' },
+    { code: 'BO', nom: 'Bolivie' },
+    { code: 'BA', nom: 'Bosnie-Herzégovine' },
+    { code: 'BW', nom: 'Botswana' },
+    { code: 'BN', nom: 'Brunei' },
+    { code: 'BR', nom: 'Brésil' },
+    { code: 'BG', nom: 'Bulgarie' },
+    { code: 'BF', nom: 'Burkina Faso' },
+    { code: 'BI', nom: 'Burundi' },
+    { code: 'BJ', nom: 'Bénin' },
+    { code: 'KH', nom: 'Cambodge' },
+    { code: 'CM', nom: 'Cameroun' },
+    { code: 'CA', nom: 'Canada' },
+    { code: 'CV', nom: 'Cap-Vert' },
+    { code: 'CF', nom: 'Centrafrique' },
+    { code: 'CL', nom: 'Chili' },
+    { code: 'CN', nom: 'Chine' },
+    { code: 'CY', nom: 'Chypre' },
+    { code: 'CO', nom: 'Colombie' },
+    { code: 'KM', nom: 'Comores' },
+    { code: 'CG', nom: 'Congo' },
+    { code: 'KP', nom: 'Corée du Nord' },
+    { code: 'KR', nom: 'Corée du Sud' },
+    { code: 'CR', nom: 'Costa Rica' },
+    { code: 'HR', nom: 'Croatie' },
+    { code: 'CU', nom: 'Cuba' },
+    { code: 'CI', nom: 'Côte d\'Ivoire' },
+    { code: 'DK', nom: 'Danemark' },
+    { code: 'DJ', nom: 'Djibouti' },
+    { code: 'ES', nom: 'Espagne' },
+    { code: 'EE', nom: 'Estonie' },
+    { code: 'SZ', nom: 'Eswatini' },
+    { code: 'FJ', nom: 'Fidji' },
+    { code: 'FI', nom: 'Finlande' },
+    { code: 'FR', nom: 'France' },
+    { code: 'GA', nom: 'Gabon' },
+    { code: 'GM', nom: 'Gambie' },
+    { code: 'GH', nom: 'Ghana' },
+    { code: 'GD', nom: 'Grenade' },
+    { code: 'GR', nom: 'Grèce' },
+    { code: 'GT', nom: 'Guatemala' },
+    { code: 'GN', nom: 'Guinée' },
+    { code: 'GQ', nom: 'Guinée équatoriale' },
+    { code: 'GW', nom: 'Guinée-Bissau' },
+    { code: 'GY', nom: 'Guyana' },
+    { code: 'GE', nom: 'Géorgie' },
+    { code: 'HT', nom: 'Haïti' },
+    { code: 'HN', nom: 'Honduras' },
+    { code: 'HU', nom: 'Hongrie' },
+    { code: 'IN', nom: 'Inde' },
+    { code: 'ID', nom: 'Indonésie' },
+    { code: 'IQ', nom: 'Irak' },
+    { code: 'IR', nom: 'Iran' },
+    { code: 'IE', nom: 'Irlande' },
+    { code: 'IS', nom: 'Islande' },
+    { code: 'IL', nom: 'Israël' },
+    { code: 'IT', nom: 'Italie' },
+    { code: 'JM', nom: 'Jamaïque' },
+    { code: 'JP', nom: 'Japon' },
+    { code: 'JO', nom: 'Jordanie' },
+    { code: 'KZ', nom: 'Kazakhstan' },
+    { code: 'KE', nom: 'Kenya' },
+    { code: 'KG', nom: 'Kirghizistan' },
+    { code: 'KI', nom: 'Kiribati' },
+    { code: 'KW', nom: 'Koweït' },
+    { code: 'LA', nom: 'Laos' },
+    { code: 'LS', nom: 'Lesotho' },
+    { code: 'LV', nom: 'Lettonie' },
+    { code: 'LB', nom: 'Liban' },
+    { code: 'LY', nom: 'Libye' },
+    { code: 'LR', nom: 'Libéria' },
+    { code: 'LI', nom: 'Liechtenstein' },
+    { code: 'LT', nom: 'Lituanie' },
+    { code: 'LU', nom: 'Luxembourg' },
+    { code: 'MK', nom: 'Macédoine du Nord' },
+    { code: 'MG', nom: 'Madagascar' },
+    { code: 'MY', nom: 'Malaisie' },
+    { code: 'MW', nom: 'Malawi' },
+    { code: 'MV', nom: 'Maldives' },
+    { code: 'ML', nom: 'Mali' },
+    { code: 'MT', nom: 'Malte' },
+    { code: 'MA', nom: 'Maroc' },
+    { code: 'MU', nom: 'Maurice' },
+    { code: 'MR', nom: 'Mauritanie' },
+    { code: 'MX', nom: 'Mexique' },
+    { code: 'FM', nom: 'Micronésie' },
+    { code: 'MD', nom: 'Moldavie' },
+    { code: 'MC', nom: 'Monaco' },
+    { code: 'MN', nom: 'Mongolie' },
+    { code: 'ME', nom: 'Monténégro' },
+    { code: 'MZ', nom: 'Mozambique' },
+    { code: 'NA', nom: 'Namibie' },
+    { code: 'NR', nom: 'Nauru' },
+    { code: 'NI', nom: 'Nicaragua' },
+    { code: 'NE', nom: 'Niger' },
+    { code: 'NG', nom: 'Nigeria' },
+    { code: 'NO', nom: 'Norvège' },
+    { code: 'NZ', nom: 'Nouvelle-Zélande' },
+    { code: 'NP', nom: 'Népal' },
+    { code: 'OM', nom: 'Oman' },
+    { code: 'UG', nom: 'Ouganda' },
+    { code: 'UZ', nom: 'Ouzbékistan' },
+    { code: 'PK', nom: 'Pakistan' },
+    { code: 'PW', nom: 'Palaos' },
+    { code: 'PA', nom: 'Panama' },
+    { code: 'PG', nom: 'Papouasie-Nouvelle-Guinée' },
+    { code: 'PY', nom: 'Paraguay' },
+    { code: 'NL', nom: 'Pays-Bas' },
+    { code: 'PH', nom: 'Philippines' },
+    { code: 'PL', nom: 'Pologne' },
+    { code: 'PT', nom: 'Portugal' },
+    { code: 'PE', nom: 'Pérou' },
+    { code: 'QA', nom: 'Qatar' },
+    { code: 'RO', nom: 'Roumanie' },
+    { code: 'GB', nom: 'Royaume-Uni' },
+    { code: 'RU', nom: 'Russie' },
+    { code: 'RW', nom: 'Rwanda' },
+    { code: 'DO', nom: 'République dominicaine' },
+    { code: 'CD', nom: 'République démocratique du Congo' },
+    { code: 'KN', nom: 'Saint-Christophe-et-Niévès' },
+    { code: 'SM', nom: 'Saint-Marin' },
+    { code: 'VC', nom: 'Saint-Vincent-et-les-Grenadines' },
+    { code: 'LC', nom: 'Sainte-Lucie' },
+    { code: 'SB', nom: 'Salomon' },
+    { code: 'SV', nom: 'Salvador' },
+    { code: 'WS', nom: 'Samoa' },
+    { code: 'ST', nom: 'Sao Tomé-et-Principe' },
+    { code: 'RS', nom: 'Serbie' },
+    { code: 'SC', nom: 'Seychelles' },
+    { code: 'SL', nom: 'Sierra Leone' },
+    { code: 'SG', nom: 'Singapour' },
+    { code: 'SK', nom: 'Slovaquie' },
+    { code: 'SI', nom: 'Slovénie' },
+    { code: 'SO', nom: 'Somalie' },
+    { code: 'SD', nom: 'Soudan' },
+    { code: 'SS', nom: 'Soudan du Sud' },
+    { code: 'LK', nom: 'Sri Lanka' },
+    { code: 'CH', nom: 'Suisse' },
+    { code: 'SR', nom: 'Suriname' },
+    { code: 'SE', nom: 'Suède' },
+    { code: 'SY', nom: 'Syrie' },
+    { code: 'SN', nom: 'Sénégal' },
+    { code: 'TJ', nom: 'Tadjikistan' },
+    { code: 'TZ', nom: 'Tanzanie' },
+    { code: 'TW', nom: 'Taïwan' },
+    { code: 'TD', nom: 'Tchad' },
+    { code: 'CZ', nom: 'Tchéquie' },
+    { code: 'TH', nom: 'Thaïlande' },
+    { code: 'TL', nom: 'Timor oriental' },
+    { code: 'TG', nom: 'Togo' },
+    { code: 'TO', nom: 'Tonga' },
+    { code: 'TT', nom: 'Trinité-et-Tobago' },
+    { code: 'TN', nom: 'Tunisie' },
+    { code: 'TM', nom: 'Turkménistan' },
+    { code: 'TR', nom: 'Turquie' },
+    { code: 'TV', nom: 'Tuvalu' },
+    { code: 'UA', nom: 'Ukraine' },
+    { code: 'UY', nom: 'Uruguay' },
+    { code: 'VU', nom: 'Vanuatu' },
+    { code: 'VA', nom: 'Vatican' },
+    { code: 'VE', nom: 'Venezuela' },
+    { code: 'VN', nom: 'Vietnam' },
+    { code: 'YE', nom: 'Yémen' },
+    { code: 'ZM', nom: 'Zambie' },
+    { code: 'ZW', nom: 'Zimbabwe' },
+    { code: 'EG', nom: 'Égypte' },
+    { code: 'AE', nom: 'Émirats arabes unis' },
+    { code: 'EC', nom: 'Équateur' },
+    { code: 'ER', nom: 'Érythrée' },
+    { code: 'US', nom: 'États-Unis' },
+    { code: 'ET', nom: 'Éthiopie' },
+    { code: 'MH', nom: 'Îles Marshall' }
+  ];
+
+  /* Un code pays (FR, IT...) devient son emoji drapeau, sans aucune image :
+     chaque lettre se transforme en son « indicateur régional » Unicode. */
+  function drapeauEmoji(code) {
+    if (!code || code.length !== 2) return '';
+    var base = 0x1F1E6;
+    return String.fromCodePoint(base + code.charCodeAt(0) - 65, base + code.charCodeAt(1) - 65);
+  }
+
+  function nomPays(code) {
+    var p = PAYS_MONDE.filter(function (x) { return x.code === code; })[0];
+    return p ? p.nom : code;
+  }
 
   function nouveauBrouillon() {
     return {
@@ -2909,7 +3194,7 @@
       nom: '', adresse: '',
       lat: null, lng: null,
       categories: [],
-      note: 0, commentaire: '', tags: [], dates: []
+      note: 0, commentaire: '', tags: [], dates: [], pays: []
     };
   }
 
@@ -2942,6 +3227,7 @@
     document.getElementById('propositions-rue').innerHTML = '';
     document.getElementById('propositions-cp').innerHTML = '';
     document.getElementById('propositions-ville').innerHTML = '';
+    document.getElementById('propositions-pays').innerHTML = '';
     arreterPointage();
     enEdition = null;
     brouillon = null;
@@ -3056,6 +3342,27 @@
       ligne.appendChild(retirer);
 
       zoneDates.appendChild(ligne);
+    });
+
+    var zonePays = document.getElementById('pays-liste');
+    zonePays.innerHTML = '';
+    (brouillon.pays || []).forEach(function (code, i) {
+      var puce = document.createElement('span');
+      puce.className = 'puce-pays';
+      puce.innerHTML = '<span>' + drapeauEmoji(code) + ' ' + echapper(nomPays(code)) + '</span>';
+
+      var retirer = document.createElement('button');
+      retirer.type = 'button';
+      retirer.className = 'croix';
+      retirer.setAttribute('aria-label', 'Retirer ' + nomPays(code));
+      retirer.textContent = '×';
+      retirer.addEventListener('click', function () {
+        brouillon.pays.splice(i, 1);
+        remplirVolet();
+      });
+      puce.appendChild(retirer);
+
+      zonePays.appendChild(puce);
     });
 
     document.getElementById('etat-point').textContent =
@@ -3653,6 +3960,10 @@
     var v = e.target.value;
     clearTimeout(minuterieAutoVille);
     minuterieAutoVille = setTimeout(function () { afficherPropositionsVille(v, 'propositions-ville', 'champ-rue'); }, 320);
+  });
+
+  document.getElementById('champ-pays').addEventListener('input', function (e) {
+    afficherPropositionsPays(e.target.value);
   });
 
   function ouvrirListe() {
