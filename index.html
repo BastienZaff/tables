@@ -390,6 +390,8 @@
     color: var(--texte);
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
+    row-gap: 8px;
     gap: 9px;
   }
   .feuille-entete .nombre {
@@ -513,7 +515,7 @@
   [data-theme="sombre"] .ravioli.creuse { opacity: .3; filter: brightness(1.6) grayscale(.8); }
   .puce[aria-pressed="true"] .ravioli { filter: brightness(0) invert(1) !important; opacity: 1 !important; }
 
-  .groupe-tri { display: flex; align-items: center; gap: 6px; }
+  .groupe-tri { display: flex; align-items: center; gap: 6px; margin-left: auto; flex: none; }
   .ouvrir-tri.actif { background: var(--accent) !important; color: #FFFFFF; }
   .croix-tri {
     display: grid;
@@ -972,6 +974,22 @@
     gap: 7px;
   }
 
+  .commandes-repliables {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    transform: translateY(-6px);
+    transition: max-height .28s ease, opacity .2s ease, transform .22s ease;
+  }
+  .commandes-repliables.ouvert {
+    max-height: 220px;
+    opacity: 1;
+    transform: translateY(0);
+  }
+
   .commande {
     width: 40px; height: 40px;
     display: grid;
@@ -989,6 +1007,7 @@
   .commande svg { display: block; }
   .commande[aria-pressed="true"] { background: var(--accent); color: #FFFFFF; border-color: var(--accent); }
   .commande[aria-pressed="true"]:hover { background: var(--accent); }
+  .commande[aria-expanded="true"] { background: var(--accent); color: #FFFFFF; border-color: var(--accent); }
 
   .etiquette-carte {
     background: transparent !important;
@@ -1158,7 +1177,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v53</span>
+        <span class="version" id="version">v55</span>
       </header>
 
       <div class="filtres">
@@ -1166,8 +1185,14 @@
         <input class="champ-recherche" id="filtre-texte" type="search" placeholder="Chercher un nom, un mot, un tag…" autocomplete="off">
         <div class="puces" id="puces-categories"></div>
         <div class="villes" id="villes"></div>
+      </div>
+    </div>
 
-        <div class="groupe-tri" style="margin-top:11px">
+    <div class="feuille">
+      <div class="poignee-feuille" id="poignee-feuille" aria-label="Agrandir la liste"><span></span></div>
+      <div class="feuille-entete" id="feuille-entete">
+        <span id="feuille-titre"></span>
+        <div class="groupe-tri" id="groupe-tri">
           <button class="puce ouvrir-tri" type="button" id="btn-tri">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M6 12h12M10 18h4"/></svg>
             <span id="btn-tri-libelle">Trier et filtrer</span>
@@ -1175,11 +1200,6 @@
           <button class="croix-tri" type="button" id="btn-tri-reset" aria-label="Réinitialiser le tri et les filtres" title="Réinitialiser" hidden>×</button>
         </div>
       </div>
-    </div>
-
-    <div class="feuille">
-      <div class="poignee-feuille" id="poignee-feuille" aria-label="Agrandir la liste"><span></span></div>
-      <div class="feuille-entete" id="feuille-entete"></div>
       <div class="liste" id="liste"></div>
     </div>
 
@@ -1197,14 +1217,19 @@
   <div class="carte-zone">
     <div id="map"></div>
     <div class="commandes-carte">
-      <button class="commande" id="btn-theme" title="Clair ou sombre" aria-label="Basculer clair ou sombre"></button>
-      <button class="commande" id="btn-fond" title="Style de carte" aria-label="Changer le style de carte"></button>
-      <button class="commande" id="btn-noms" title="Afficher les noms sur la carte" aria-label="Afficher ou masquer les noms sur la carte" aria-pressed="false">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h7"/></svg>
+      <button class="commande" id="btn-parametres-carte" title="Paramètres de la carte" aria-label="Afficher les réglages de la carte" aria-expanded="false">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 13.5a1.7 1.7 0 0 0 .34 1.87l.06.06a2.1 2.1 0 1 1-2.96 2.96l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.55V19.7a2.1 2.1 0 1 1-4.2 0v-.09a1.7 1.7 0 0 0-1.1-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2.1 2.1 0 1 1-2.96-2.96l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1.03H4.3a2.1 2.1 0 1 1 0-4.2h.09a1.7 1.7 0 0 0 1.55-1.1 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2.1 2.1 0 1 1 2.96-2.96l.06.06a1.7 1.7 0 0 0 1.87.34H10.5A1.7 1.7 0 0 0 11.53 3.7V3.6a2.1 2.1 0 1 1 4.2 0v.09a1.7 1.7 0 0 0 1.03 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2.1 2.1 0 1 1 2.96 2.96l-.06.06a1.7 1.7 0 0 0-.34 1.87V9.9a1.7 1.7 0 0 0 1.55 1.03h.09a2.1 2.1 0 1 1 0 4.2h-.09a1.7 1.7 0 0 0-1.55 1.03z"/></svg>
       </button>
-      <button class="commande" id="btn-position" title="Ma position" aria-label="Afficher ma position sur la carte" aria-pressed="false">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2.6"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3"/></svg>
-      </button>
+      <div class="commandes-repliables" id="commandes-repliables">
+        <button class="commande" id="btn-theme" title="Clair ou sombre" aria-label="Basculer clair ou sombre"></button>
+        <button class="commande" id="btn-fond" title="Style de carte" aria-label="Changer le style de carte"></button>
+        <button class="commande" id="btn-noms" title="Afficher les noms sur la carte" aria-label="Afficher ou masquer les noms sur la carte" aria-pressed="false">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h7"/></svg>
+        </button>
+        <button class="commande" id="btn-position" title="Ma position" aria-label="Afficher ma position sur la carte" aria-pressed="false">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2.6"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3"/></svg>
+        </button>
+      </div>
     </div>
     <div class="bandeau-pointage" id="bandeau-pointage">Clique sur la carte pour poser le point</div>
   </div>
@@ -2677,7 +2702,7 @@
     } else if (villesActives.length > 1) {
       titre = villesActives.length + ' villes';
     }
-    document.getElementById('feuille-entete').innerHTML =
+    document.getElementById('feuille-titre').innerHTML =
       echapper(titre) + '<span class="nombre">' + n + (n > 1 ? ' adresses' : ' adresse') + '</span>';
   }
 
@@ -3495,6 +3520,11 @@
     suivrePosition = !suivrePosition;
     appliquerPosition();
     if (suivrePosition) annoncer('Localisation en cours…');
+  });
+
+  document.getElementById('btn-parametres-carte').addEventListener('click', function () {
+    var ouvert = document.getElementById('commandes-repliables').classList.toggle('ouvert');
+    this.setAttribute('aria-expanded', ouvert ? 'true' : 'false');
   });
 
   document.getElementById('btn-ajouter').addEventListener('click', ajouter);
