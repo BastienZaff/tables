@@ -389,10 +389,9 @@
     font-size: 15px;
     color: var(--texte);
     display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    row-gap: 8px;
-    gap: 9px;
+    flex-direction: column;
+    align-items: flex-start;
+    row-gap: 10px;
   }
   .feuille-entete .nombre {
     font-weight: 500;
@@ -402,6 +401,7 @@
     padding: 3px 10px;
     border-radius: 999px;
   }
+  #feuille-titre { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
 
   .flottant {
     position: absolute;
@@ -515,7 +515,7 @@
   [data-theme="sombre"] .ravioli.creuse { opacity: .3; filter: brightness(1.6) grayscale(.8); }
   .puce[aria-pressed="true"] .ravioli { filter: brightness(0) invert(1) !important; opacity: 1 !important; }
 
-  .groupe-tri { display: flex; align-items: center; gap: 6px; margin-left: auto; flex: none; }
+  .groupe-tri { display: flex; align-items: center; gap: 6px; flex: none; }
   .ouvrir-tri.actif { background: var(--accent) !important; color: #FFFFFF; }
   .croix-tri {
     display: grid;
@@ -1177,7 +1177,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v55</span>
+        <span class="version" id="version">v56</span>
       </header>
 
       <div class="filtres">
@@ -1194,7 +1194,7 @@
         <span id="feuille-titre"></span>
         <div class="groupe-tri" id="groupe-tri">
           <button class="puce ouvrir-tri" type="button" id="btn-tri">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M6 12h12M10 18h4"/></svg>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><circle cx="9" cy="6" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="15" cy="12" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="7" cy="18" r="2" fill="currentColor" stroke="none"/></svg>
             <span id="btn-tri-libelle">Trier et filtrer</span>
           </button>
           <button class="croix-tri" type="button" id="btn-tri-reset" aria-label="Réinitialiser le tri et les filtres" title="Réinitialiser" hidden>×</button>
