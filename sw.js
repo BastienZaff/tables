@@ -1,7 +1,7 @@
 /* Dévoreur Explorer — fonctionnement hors connexion.
    Change le numéro de version ci-dessous après chaque modification. */
 
-var VERSION = 'tables-v59';
+var VERSION = 'tables-v60';
 
 var COQUILLE = [
   './',
@@ -65,7 +65,7 @@ self.addEventListener('fetch', function (e) {
     return;
   }
 
-  if (url.indexOf('basemaps.cartocdn.com') !== -1 || url.indexOf('arcgisonline.com') !== -1) {
+  if (url.indexOf('basemaps.cartocdn.com') !== -1 || url.indexOf('arcgisonline.com') !== -1 || url.indexOf('flagcdn.com') !== -1) {
     e.respondWith(
       caches.match(e.request).then(function (r) {
         return r || fetch(e.request).then(function (reponse) {

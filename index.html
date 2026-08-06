@@ -1204,7 +1204,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v59</span>
+        <span class="version" id="version">v60</span>
       </header>
 
       <div class="filtres">
@@ -2195,7 +2195,7 @@
     }
     if (l.commentaire) h += '<div class="bulle-mot">' + echapper(l.commentaire) + '</div>';
     if (l.pays && l.pays.length) {
-      h += '<div class="bulle-date">' + l.pays.map(drapeauEmoji).join(' ') + '</div>';
+      h += '<div class="bulle-date">' + l.pays.map(function (c) { return imgDrapeau(c, 16); }).join(' ') + '</div>';
     }
     h += '<div class="bulle-separateur"></div>';
     var idClip = 'clip-pin-' + (compteurFiltresEpingle++);
@@ -2961,7 +2961,7 @@
       var b = document.createElement('button');
       b.className = 'proposition';
       b.type = 'button';
-      b.innerHTML = '<div class="p-nom">' + drapeauEmoji(p.code) + ' ' + echapper(p.nom) + '</div>';
+      b.innerHTML = '<div class="p-nom">' + imgDrapeau(p.code) + ' ' + echapper(p.nom) + '</div>';
       b.addEventListener('click', function () {
         if (!brouillon.pays) brouillon.pays = [];
         brouillon.pays.push(p.code);
@@ -3175,12 +3175,16 @@
     { code: 'MH', nom: 'Îles Marshall' }
   ];
 
-  /* Un code pays (FR, IT...) devient son emoji drapeau, sans aucune image :
-     chaque lettre se transforme en son « indicateur régional » Unicode. */
-  function drapeauEmoji(code) {
-    if (!code || code.length !== 2) return '';
-    var base = 0x1F1E6;
-    return String.fromCodePoint(base + code.charCodeAt(0) - 65, base + code.charCodeAt(1) - 65);
+  /* Les drapeaux emoji ne s'affichent pas sur tous les appareils (certains
+     navigateurs/systèmes montrent juste les deux lettres du code, sans
+     dessiner le drapeau). On utilise donc de vraies petites images, via
+     flagcdn.com — un service ouvert et gratuit, sans clé. */
+  function imgDrapeau(code, taille) {
+    var t = taille || 18;
+    var h = Math.round(t * 3 / 4);
+    return '<img src="https://flagcdn.com/h' + h + '/' + code.toLowerCase() + '.png" ' +
+      'width="' + t + '" height="' + h + '" alt="' + code + '" ' +
+      'style="display:inline-block;vertical-align:middle;border-radius:2px;box-shadow:0 0 0 1px rgba(0,0,0,.08)">';
   }
 
   function nomPays(code) {
@@ -3349,7 +3353,7 @@
     (brouillon.pays || []).forEach(function (code, i) {
       var puce = document.createElement('span');
       puce.className = 'puce-pays';
-      puce.innerHTML = '<span>' + drapeauEmoji(code) + ' ' + echapper(nomPays(code)) + '</span>';
+      puce.innerHTML = '<span>' + imgDrapeau(code) + ' ' + echapper(nomPays(code)) + '</span>';
 
       var retirer = document.createElement('button');
       retirer.type = 'button';
