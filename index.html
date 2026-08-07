@@ -316,23 +316,28 @@
 
   .profil-bandeau {
     background: var(--panneau);
-    margin: -18px -22px 22px;
-    padding: 34px 22px 24px;
     border-radius: 0 0 26px 26px;
     text-align: center;
+    padding-bottom: 26px;
+    position: relative;
   }
   [data-theme="sombre"] .profil-bandeau { background: linear-gradient(158deg, #4B1D78 0%, #34155F 45%, #230C40 100%); }
 
+  .profil-bandeau .volet-entete { background: transparent; border-bottom: 0; text-align: left; }
+  .profil-bandeau .volet-titre { color: #FFFFFF; font-size: 22px; }
+  .profil-bandeau .fermer { color: rgba(255,255,255,.85); }
+  .profil-bandeau .fermer:hover { color: #FFFFFF; }
+
   .profil-avatar {
-    width: 92px; height: 92px;
+    width: 120px; height: 120px;
     border-radius: 50%;
-    border: 3px solid rgba(255,255,255,.8);
+    border: 4px solid var(--accent);
     background: var(--surface);
     color: var(--accent);
     display: grid;
     place-items: center;
-    margin: 0 auto 12px;
-    box-shadow: 0 6px 18px rgba(42,17,69,.25);
+    margin: 6px auto 14px;
+    box-shadow: 0 6px 18px rgba(42,17,69,.3);
     overflow: hidden;
     position: relative;
   }
@@ -347,6 +352,25 @@
     transition: background .15s;
   }
   .profil-avatar:hover::after { background: rgba(42,17,69,.12); }
+
+  .profil-avatar-retirer {
+    position: absolute;
+    left: 50%;
+    top: 6px;
+    margin-left: 46px;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: 2px solid #FFFFFF;
+    background: var(--danger);
+    color: #FFFFFF;
+    font-size: 16px;
+    line-height: 1;
+    display: grid;
+    place-items: center;
+    box-shadow: 0 3px 8px rgba(42,17,69,.3);
+  }
+  .profil-avatar-retirer:hover { filter: brightness(1.08); }
+  .profil-avatar-retirer[hidden] { display: none; }
 
   .profil-pseudo {
     display: block;
@@ -1236,7 +1260,7 @@
     transition: transform .16s;
     overflow: hidden;
   }
-  .languette-profil svg { flex: none; margin-left: -4px; }
+  .languette-profil svg { position: absolute; top: 50%; right: 0; transform: translate(50%, -50%); }
   .languette-profil:hover { filter: brightness(.97); }
   .languette-profil:active { transform: translateY(-50%) scale(.94); }
 
@@ -1344,7 +1368,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v68</span>
+        <span class="version" id="version">v69</span>
       </header>
 
       <div class="filtres">
@@ -1587,21 +1611,22 @@
 </section>
 
 <section class="volet" id="volet-profil" aria-hidden="true">
-  <div class="volet-entete">
-    <span class="volet-titre">Mon profil</span>
-    <button class="fermer" id="profil-fermer" aria-label="Fermer">×</button>
+  <div class="profil-bandeau">
+    <div class="volet-entete">
+      <span class="volet-titre">Mon profil</span>
+      <button class="fermer" id="profil-fermer" aria-label="Fermer">×</button>
+    </div>
+
+    <button class="profil-avatar" id="profil-avatar" aria-label="Changer la photo de profil">
+      <img id="profil-avatar-img" alt="" hidden>
+      <svg id="profil-avatar-defaut" width="54" height="54" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0z"/></svg>
+    </button>
+    <button class="profil-avatar-retirer" id="profil-avatar-retirer" aria-label="Retirer la photo" title="Retirer la photo" hidden>×</button>
+    <input type="file" id="profil-photo-fichier" accept="image/*" hidden>
+    <input class="profil-pseudo" id="profil-pseudo" type="text" placeholder="Ton pseudo" maxlength="30" autocomplete="off">
   </div>
 
   <div class="volet-corps">
-    <div class="profil-bandeau">
-      <button class="profil-avatar" id="profil-avatar" aria-label="Changer la photo de profil">
-        <img id="profil-avatar-img" alt="" hidden>
-        <svg id="profil-avatar-defaut" width="42" height="42" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0z"/></svg>
-      </button>
-      <input type="file" id="profil-photo-fichier" accept="image/*" hidden>
-      <input class="profil-pseudo" id="profil-pseudo" type="text" placeholder="Ton pseudo" maxlength="30" autocomplete="off">
-    </div>
-
     <div class="profil-stats" id="profil-stats"></div>
 
     <div class="groupe">
@@ -2792,6 +2817,7 @@
       imgAvatar.hidden = true;
       defautAvatar.style.display = '';
     }
+    document.getElementById('profil-avatar-retirer').hidden = !monProfil.photo;
     var champPseudo = document.getElementById('profil-pseudo');
     if (document.activeElement !== champPseudo) champPseudo.value = monProfil.pseudo || '';
 
@@ -4215,6 +4241,12 @@
   document.getElementById('profil-photo-fichier').addEventListener('change', function (e) {
     if (e.target.files[0]) traiterPhotoProfil(e.target.files[0]);
     e.target.value = '';
+  });
+  document.getElementById('profil-avatar-retirer').addEventListener('click', function (e) {
+    e.stopPropagation();
+    monProfil.photo = '';
+    enregistrerProfil();
+    dessinerProfil();
   });
   var minuterieProfilPseudo;
   document.getElementById('profil-pseudo').addEventListener('input', function (e) {
