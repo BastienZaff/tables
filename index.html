@@ -137,13 +137,28 @@
 
   .version {
     position: absolute;
-    top: calc(8px + env(safe-area-inset-top));
+    top: calc(60px + env(safe-area-inset-top));
     right: 12px;
     font-family: var(--label);
     font-size: 11px;
     color: var(--texte-doux);
     opacity: .55;
   }
+
+  .bouton-profil {
+    position: absolute;
+    top: calc(24px + env(safe-area-inset-top));
+    right: 12px;
+    width: 34px; height: 34px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    border: 0;
+    background: var(--surface);
+    color: var(--accent);
+    box-shadow: var(--ombre);
+  }
+  .bouton-profil:hover { filter: brightness(.97); }
 
   .logo {
     display: block;
@@ -313,6 +328,53 @@
     border: 0;
   }
   .puce-pays .croix:hover { background: var(--pastille-forte); color: var(--danger); }
+
+  .profil-stats {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 22px;
+  }
+  .profil-stat {
+    flex: 1;
+    background: var(--pastille);
+    border-radius: 16px;
+    padding: 14px 12px;
+    text-align: center;
+  }
+  .profil-stat .nombre {
+    display: block;
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 24px;
+    color: var(--texte);
+  }
+  .profil-stat .libelle {
+    display: block;
+    font-family: var(--label);
+    font-size: 11.5px;
+    color: var(--texte-doux);
+    margin-top: 2px;
+  }
+
+  .ligne-pays-profil {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 4px;
+    border-bottom: 1px solid var(--ligne);
+  }
+  .ligne-pays-profil:last-child { border-bottom: 0; }
+  .ligne-pays-profil .nom { flex: 1; font-family: var(--body); font-size: 14px; color: var(--texte); }
+  .ligne-pays-profil .compte {
+    font-family: var(--label);
+    font-weight: 600;
+    font-size: 12px;
+    color: var(--texte-doux);
+    background: var(--surface-2);
+    padding: 3px 9px;
+    border-radius: 999px;
+  }
+  .profil-vide { color: var(--texte-doux); font-size: 13.5px; padding: 8px 4px; }
 
   .invite-villes {
     width: 100%;
@@ -1174,6 +1236,19 @@
     .onglet svg { display: block; }
     .onglet[aria-pressed="true"] { background: var(--accent); color: #FFFFFF; }
 
+    .onglet-profil-mobile {
+      flex: none;
+      width: 44px; height: 44px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      border: 0;
+      background: var(--accent);
+      color: #FFFFFF;
+      box-shadow: var(--ombre);
+    }
+    .onglet-profil-mobile:active { transform: scale(.94); }
+
     .liste { padding-bottom: 120px; }
     .flottant { bottom: calc(78px + env(safe-area-inset-bottom)); }
     .volet { width: 100%; }
@@ -1204,7 +1279,10 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v63</span>
+        <button class="bouton-profil" id="btn-profil" title="Mon profil" aria-label="Ouvrir mon profil">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0z"/></svg>
+        </button>
+        <span class="version" id="version">v64</span>
       </header>
 
       <div class="filtres">
@@ -1281,6 +1359,9 @@
     <button class="onglet" id="onglet-carte" aria-pressed="true">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M9 3.5 3.5 6v14.5L9 18l6 2.5 5.5-2.5V3.5L15 6z"/><path d="M9 3.5V18M15 6v20.5"/></svg>
       Carte
+    </button>
+    <button class="onglet-profil-mobile" id="onglet-profil-mobile" aria-label="Mon profil">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0z"/></svg>
     </button>
   </nav>
 </div>
@@ -1435,6 +1516,22 @@
         <div class="propositions" id="propositions-filtre-pays"></div>
       </div>
       <div id="filtre-pays-liste"></div>
+    </div>
+  </div>
+</section>
+
+<section class="volet" id="volet-profil" aria-hidden="true">
+  <div class="volet-entete">
+    <span class="volet-titre">Mon profil</span>
+    <button class="fermer" id="profil-fermer" aria-label="Fermer">×</button>
+  </div>
+
+  <div class="volet-corps">
+    <div class="profil-stats" id="profil-stats"></div>
+
+    <div class="groupe">
+      <span class="etiq">Pays goûtés</span>
+      <div id="profil-pays"></div>
     </div>
   </div>
 </section>
@@ -2553,6 +2650,51 @@
     document.getElementById('volet-tri').setAttribute('aria-hidden', 'true');
     document.getElementById('voile').classList.remove('ouvert');
     document.getElementById('propositions-filtre-pays').innerHTML = '';
+  }
+
+  function ouvrirProfil() {
+    dessinerProfil();
+    document.getElementById('volet-profil').classList.add('ouvert');
+    document.getElementById('volet-profil').setAttribute('aria-hidden', 'false');
+    document.getElementById('voile').classList.add('ouvert');
+  }
+
+  function fermerProfil() {
+    document.getElementById('volet-profil').classList.remove('ouvert');
+    document.getElementById('volet-profil').setAttribute('aria-hidden', 'true');
+    document.getElementById('voile').classList.remove('ouvert');
+  }
+
+  /* Les pays comptent uniquement à partir des adresses testées : « à tester »
+     ne veut encore rien dire sur la cuisine qu'on y a vraiment goûtée. */
+  function dessinerProfil() {
+    var testees = lieux.filter(function (l) { return !!l.note; });
+
+    document.getElementById('profil-stats').innerHTML =
+      '<div class="profil-stat"><span class="nombre">' + lieux.length + '</span><span class="libelle">' +
+      (lieux.length > 1 ? 'adresses' : 'adresse') + '</span></div>' +
+      '<div class="profil-stat"><span class="nombre">' + testees.length + '</span><span class="libelle">testées</span></div>';
+
+    var comptes = {};
+    testees.forEach(function (l) {
+      (l.pays || []).forEach(function (code) { comptes[code] = (comptes[code] || 0) + 1; });
+    });
+
+    var codes = Object.keys(comptes).sort(function (a, b) {
+      return comptes[b] - comptes[a] || nomPays(a).localeCompare(nomPays(b), 'fr');
+    });
+
+    var zone = document.getElementById('profil-pays');
+    if (!codes.length) {
+      zone.innerHTML = '<div class="profil-vide">Aucun pays renseigné pour l\'instant — ajoutes-en depuis la fiche d\'une adresse testée.</div>';
+      return;
+    }
+
+    zone.innerHTML = codes.map(function (code) {
+      return '<div class="ligne-pays-profil">' + imgDrapeau(code, 22) +
+        '<span class="nom">' + echapper(nomPays(code)) + '</span>' +
+        '<span class="compte">' + comptes[code] + '</span></div>';
+    }).join('');
   }
 
   /* Vrai dès que le tri ou un filtre s'écarte de l'état par défaut
@@ -3927,6 +4069,7 @@
     fermerImport();
     fermerMapstr();
     fermerTri();
+    fermerProfil();
   });
   document.getElementById('btn-enregistrer').addEventListener('click', valider);
   document.getElementById('btn-supprimer').addEventListener('click', supprimer);
@@ -3938,6 +4081,9 @@
     reinitialiserTri();
   });
   document.getElementById('tri-fermer').addEventListener('click', fermerTri);
+  document.getElementById('profil-fermer').addEventListener('click', fermerProfil);
+  document.getElementById('btn-profil').addEventListener('click', ouvrirProfil);
+  document.getElementById('onglet-profil-mobile').addEventListener('click', ouvrirProfil);
   document.getElementById('cat-ajouter').addEventListener('click', ajouterCat);
   document.getElementById('cat-nom').addEventListener('keydown', function (e) {
     if (e.key === 'Enter') ajouterCat();
