@@ -353,11 +353,12 @@
   }
   .profil-avatar:hover::after { background: rgba(42,17,69,.12); }
 
+  .profil-avatar-zone { position: relative; display: inline-block; }
+
   .profil-avatar-retirer {
     position: absolute;
-    left: 50%;
-    top: 6px;
-    margin-left: 46px;
+    top: 4px;
+    right: -2px;
     width: 28px; height: 28px;
     border-radius: 50%;
     border: 2px solid #FFFFFF;
@@ -368,7 +369,11 @@
     display: grid;
     place-items: center;
     box-shadow: 0 3px 8px rgba(42,17,69,.3);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .15s;
   }
+  .profil-avatar-zone:hover .profil-avatar-retirer:not([hidden]) { opacity: 1; pointer-events: auto; }
   .profil-avatar-retirer:hover { filter: brightness(1.08); }
   .profil-avatar-retirer[hidden] { display: none; }
 
@@ -1246,8 +1251,8 @@
     top: 50%;
     transform: translateY(-50%);
     z-index: 900;
-    width: 48px;
-    height: 76px;
+    width: 34px;
+    height: 56px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1260,7 +1265,7 @@
     transition: transform .16s;
     overflow: hidden;
   }
-  .languette-profil svg { position: absolute; top: 50%; right: 0; transform: translate(50%, -50%); }
+  .languette-profil svg { position: absolute; top: 50%; right: 0; transform: translate(50%, -50%); width: 34px; height: 34px; }
   .languette-profil:hover { filter: brightness(.97); }
   .languette-profil:active { transform: translateY(-50%) scale(.94); }
 
@@ -1368,7 +1373,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v69</span>
+        <span class="version" id="version">v70</span>
       </header>
 
       <div class="filtres">
@@ -1438,7 +1443,7 @@
   </button>
 
   <button class="languette-profil" id="languette-profil" aria-label="Ouvrir mon profil">
-    <svg width="56" height="56" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0z"/></svg>
+    <svg width="34" height="34" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0z"/></svg>
   </button>
 
   <nav class="onglets">
@@ -1617,11 +1622,13 @@
       <button class="fermer" id="profil-fermer" aria-label="Fermer">×</button>
     </div>
 
-    <button class="profil-avatar" id="profil-avatar" aria-label="Changer la photo de profil">
-      <img id="profil-avatar-img" alt="" hidden>
-      <svg id="profil-avatar-defaut" width="54" height="54" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0z"/></svg>
-    </button>
-    <button class="profil-avatar-retirer" id="profil-avatar-retirer" aria-label="Retirer la photo" title="Retirer la photo" hidden>×</button>
+    <div class="profil-avatar-zone">
+      <button class="profil-avatar" id="profil-avatar" aria-label="Changer la photo de profil">
+        <img id="profil-avatar-img" alt="" hidden>
+        <svg id="profil-avatar-defaut" width="54" height="54" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0z"/></svg>
+      </button>
+      <button class="profil-avatar-retirer" id="profil-avatar-retirer" aria-label="Retirer la photo" title="Retirer la photo" hidden>×</button>
+    </div>
     <input type="file" id="profil-photo-fichier" accept="image/*" hidden>
     <input class="profil-pseudo" id="profil-pseudo" type="text" placeholder="Ton pseudo" maxlength="30" autocomplete="off">
   </div>
