@@ -314,6 +314,60 @@
   }
   .puce-pays .croix:hover { background: var(--pastille-forte); color: var(--danger); }
 
+  .profil-bandeau {
+    background: var(--panneau);
+    margin: -18px -22px 22px;
+    padding: 34px 22px 24px;
+    border-radius: 0 0 26px 26px;
+    text-align: center;
+  }
+  [data-theme="sombre"] .profil-bandeau { background: linear-gradient(158deg, #4B1D78 0%, #34155F 45%, #230C40 100%); }
+
+  .profil-avatar {
+    width: 92px; height: 92px;
+    border-radius: 50%;
+    border: 3px solid rgba(255,255,255,.8);
+    background: var(--surface);
+    color: var(--accent);
+    display: grid;
+    place-items: center;
+    margin: 0 auto 12px;
+    box-shadow: 0 6px 18px rgba(42,17,69,.25);
+    overflow: hidden;
+    position: relative;
+  }
+  .profil-avatar:hover { filter: brightness(.97); }
+  .profil-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .profil-avatar::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: rgba(42,17,69,0);
+    transition: background .15s;
+  }
+  .profil-avatar:hover::after { background: rgba(42,17,69,.12); }
+
+  .profil-pseudo {
+    display: block;
+    width: 100%;
+    max-width: 220px;
+    margin: 0 auto;
+    background: transparent;
+    border: 0;
+    border-bottom: 1.5px solid rgba(42,17,69,.18);
+    text-align: center;
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 18px;
+    color: var(--texte);
+    padding: 4px 6px 6px;
+  }
+  .profil-pseudo::placeholder { color: var(--texte-doux); opacity: .7; font-weight: 500; }
+  .profil-pseudo:focus { outline: none; border-bottom-color: var(--accent); }
+  [data-theme="sombre"] .profil-pseudo { color: #FFFFFF; border-bottom-color: rgba(255,255,255,.3); }
+  [data-theme="sombre"] .profil-pseudo::placeholder { color: rgba(255,255,255,.6); }
+
   .profil-stats {
     display: flex;
     gap: 10px;
@@ -1173,14 +1227,16 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0 8px 0 0;
+    padding: 0;
     border: 0;
     border-radius: 999px 0 0 999px;
     background: var(--surface);
     color: var(--accent);
     box-shadow: 0 4px 16px rgba(42,17,69,.22);
     transition: transform .16s;
+    overflow: hidden;
   }
+  .languette-profil svg { flex: none; margin-left: -4px; }
   .languette-profil:hover { filter: brightness(.97); }
   .languette-profil:active { transform: translateY(-50%) scale(.94); }
 
@@ -1288,7 +1344,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v67</span>
+        <span class="version" id="version">v68</span>
       </header>
 
       <div class="filtres">
@@ -1358,7 +1414,7 @@
   </button>
 
   <button class="languette-profil" id="languette-profil" aria-label="Ouvrir mon profil">
-    <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0z"/></svg>
+    <svg width="56" height="56" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0z"/></svg>
   </button>
 
   <nav class="onglets">
@@ -1537,6 +1593,15 @@
   </div>
 
   <div class="volet-corps">
+    <div class="profil-bandeau">
+      <button class="profil-avatar" id="profil-avatar" aria-label="Changer la photo de profil">
+        <img id="profil-avatar-img" alt="" hidden>
+        <svg id="profil-avatar-defaut" width="42" height="42" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0z"/></svg>
+      </button>
+      <input type="file" id="profil-photo-fichier" accept="image/*" hidden>
+      <input class="profil-pseudo" id="profil-pseudo" type="text" placeholder="Ton pseudo" maxlength="30" autocomplete="off">
+    </div>
+
     <div class="profil-stats" id="profil-stats"></div>
 
     <div class="groupe">
@@ -2662,6 +2727,45 @@
     document.getElementById('propositions-filtre-pays').innerHTML = '';
   }
 
+  var CLE_PROFIL = 'tables:profil';
+  var monProfil = { pseudo: '', photo: '' };
+
+  function chargerProfil() {
+    try {
+      var brut = localStorage.getItem(CLE_PROFIL);
+      if (brut) monProfil = JSON.parse(brut);
+    } catch (e) {}
+  }
+
+  function enregistrerProfil() {
+    try { localStorage.setItem(CLE_PROFIL, JSON.stringify(monProfil)); } catch (e) {}
+  }
+
+  /* Recadre la photo en carré et la compresse avant de l'enregistrer : une
+     photo de téléphone pèse plusieurs Mo, alors que le localStorage n'offre
+     que quelques Mo au total pour toute l'appli. */
+  function traiterPhotoProfil(fichier) {
+    var lecteur = new FileReader();
+    lecteur.onload = function () {
+      var img = new Image();
+      img.onload = function () {
+        var taille = 300;
+        var cote = Math.min(img.width, img.height);
+        var sx = (img.width - cote) / 2;
+        var sy = (img.height - cote) / 2;
+        var toile = document.createElement('canvas');
+        toile.width = taille; toile.height = taille;
+        var ctx = toile.getContext('2d');
+        ctx.drawImage(img, sx, sy, cote, cote, 0, 0, taille, taille);
+        monProfil.photo = toile.toDataURL('image/jpeg', 0.85);
+        enregistrerProfil();
+        dessinerProfil();
+      };
+      img.src = lecteur.result;
+    };
+    lecteur.readAsDataURL(fichier);
+  }
+
   function ouvrirProfil() {
     dessinerProfil();
     document.getElementById('volet-profil').classList.add('ouvert');
@@ -2678,6 +2782,19 @@
   /* Les pays comptent uniquement à partir des adresses testées : « à tester »
      ne veut encore rien dire sur la cuisine qu'on y a vraiment goûtée. */
   function dessinerProfil() {
+    var imgAvatar = document.getElementById('profil-avatar-img');
+    var defautAvatar = document.getElementById('profil-avatar-defaut');
+    if (monProfil.photo) {
+      imgAvatar.src = monProfil.photo;
+      imgAvatar.hidden = false;
+      defautAvatar.style.display = 'none';
+    } else {
+      imgAvatar.hidden = true;
+      defautAvatar.style.display = '';
+    }
+    var champPseudo = document.getElementById('profil-pseudo');
+    if (document.activeElement !== champPseudo) champPseudo.value = monProfil.pseudo || '';
+
     var testees = lieux.filter(function (l) { return !!l.note; });
 
     document.getElementById('profil-stats').innerHTML =
@@ -4092,6 +4209,23 @@
   });
   document.getElementById('tri-fermer').addEventListener('click', fermerTri);
   document.getElementById('profil-fermer').addEventListener('click', fermerProfil);
+  document.getElementById('profil-avatar').addEventListener('click', function () {
+    document.getElementById('profil-photo-fichier').click();
+  });
+  document.getElementById('profil-photo-fichier').addEventListener('change', function (e) {
+    if (e.target.files[0]) traiterPhotoProfil(e.target.files[0]);
+    e.target.value = '';
+  });
+  var minuterieProfilPseudo;
+  document.getElementById('profil-pseudo').addEventListener('input', function (e) {
+    var v = e.target.value;
+    clearTimeout(minuterieProfilPseudo);
+    minuterieProfilPseudo = setTimeout(function () {
+      monProfil.pseudo = v.trim();
+      enregistrerProfil();
+    }, 400);
+  });
+
   document.getElementById('languette-profil').addEventListener('click', ouvrirProfil);
   document.getElementById('onglet-profil-mobile').addEventListener('click', ouvrirProfil);
   document.getElementById('cat-ajouter').addEventListener('click', ajouterCat);
@@ -4324,6 +4458,7 @@
       var d = JSON.parse(cc);
       if (Array.isArray(d) && d.length) CATEGORIES = d;
     }
+    chargerProfil();
   } catch (e) { villes = []; }
 
   demarrerCarte();
