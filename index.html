@@ -1204,7 +1204,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v62</span>
+        <span class="version" id="version">v63</span>
       </header>
 
       <div class="filtres">
@@ -1427,6 +1427,15 @@
       <span class="etiq">Filtrer : note</span>
       <div class="puces" id="puces-notes"></div>
     </div>
+
+    <div class="groupe">
+      <span class="etiq">Filtrer : pays</span>
+      <div class="zone-auto">
+        <input class="saisie" id="champ-filtre-pays" type="text" placeholder="Chercher un pays…" autocomplete="off">
+        <div class="propositions" id="propositions-filtre-pays"></div>
+      </div>
+      <div id="filtre-pays-liste"></div>
+    </div>
   </div>
 </section>
 
@@ -1556,6 +1565,7 @@
   var triSens = { alpha: 1, date: -1, note: -1 }; // 1 = croissant, -1 = décroissant
   var filtreRecence = 'tout';   // 'tout' | 'semaine' | 'mois' | 'an' | 'ancien'
   var filtresNotes = [];        // tableau vide = toutes les notes ; sinon, une des notes cochées
+  var filtresPays = [];         // tableau vide = tous les pays ; sinon, un lieu doit avoir AU MOINS UN des pays cochés
   var teinteChoisie = '#C24DE8';
   var enEdition = null;      // id du lieu en cours d'édition, null si nouveau
   var brouillon = null;      // objet en cours de saisie
@@ -2269,6 +2279,12 @@
 
       if (filtresNotes.length > 0 && filtresNotes.indexOf(l.note || 0) === -1) return false;
 
+      if (filtresPays.length > 0) {
+        var paysLieu = l.pays || [];
+        var auMoinsUnPays = filtresPays.some(function (code) { return paysLieu.indexOf(code) !== -1; });
+        if (!auMoinsUnPays) return false;
+      }
+
       if (filtreRecence !== 'tout') {
         var derniere = derniereVisite(l);
         if (!derniere) return false;
@@ -2411,6 +2427,60 @@
     }
   }
 
+  function dessinerFiltrePays() {
+    var zone = document.getElementById('filtre-pays-liste');
+    zone.innerHTML = '';
+    filtresPays.forEach(function (code, i) {
+      var puce = document.createElement('span');
+      puce.className = 'puce-pays';
+      puce.innerHTML = '<span>' + imgDrapeau(code) + ' ' + echapper(nomPays(code)) + '</span>';
+
+      var retirer = document.createElement('button');
+      retirer.type = 'button';
+      retirer.className = 'croix';
+      retirer.setAttribute('aria-label', 'Retirer ' + nomPays(code));
+      retirer.textContent = '×';
+      retirer.addEventListener('click', function () {
+        filtresPays.splice(i, 1);
+        rafraichir();
+      });
+      puce.appendChild(retirer);
+
+      zone.appendChild(puce);
+    });
+  }
+
+  function afficherPropositionsFiltrePays(texte) {
+    var zone = document.getElementById('propositions-filtre-pays');
+    var q = normaliser(texte);
+    if (q.length < 1) { zone.innerHTML = ''; return; }
+
+    var resultats = PAYS_MONDE
+      .filter(function (p) { return filtresPays.indexOf(p.code) === -1 && normaliser(p.nom).indexOf(q) !== -1; })
+      .slice(0, 8);
+
+    zone.innerHTML = '';
+    if (!resultats.length) {
+      zone.innerHTML = '<div class="proposition"><span class="p-etat">Aucun pays trouvé.</span></div>';
+      return;
+    }
+
+    resultats.forEach(function (p) {
+      var b = document.createElement('button');
+      b.className = 'proposition';
+      b.type = 'button';
+      b.innerHTML = '<div class="p-nom">' + imgDrapeau(p.code) + ' ' + echapper(p.nom) + '</div>';
+      b.addEventListener('click', function () {
+        filtresPays.push(p.code);
+        document.getElementById('champ-filtre-pays').value = '';
+        zone.innerHTML = '';
+        rafraichir();
+        document.getElementById('champ-filtre-pays').focus();
+      });
+      zone.appendChild(b);
+    });
+  }
+
 
   function dessinerPuces() {
     var zone = document.getElementById('puces-categories');
@@ -2472,6 +2542,7 @@
     dessinerTri();
     dessinerRecence();
     dessinerNotes();
+    dessinerFiltrePays();
     document.getElementById('volet-tri').classList.add('ouvert');
     document.getElementById('volet-tri').setAttribute('aria-hidden', 'false');
     document.getElementById('voile').classList.add('ouvert');
@@ -2481,13 +2552,14 @@
     document.getElementById('volet-tri').classList.remove('ouvert');
     document.getElementById('volet-tri').setAttribute('aria-hidden', 'true');
     document.getElementById('voile').classList.remove('ouvert');
+    document.getElementById('propositions-filtre-pays').innerHTML = '';
   }
 
   /* Vrai dès que le tri ou un filtre s'écarte de l'état par défaut
      (alphabétique croissant, aucun filtre de récence ni de note). */
   function triOuFiltreActif() {
     return triActif !== 'alpha' || triSens.alpha !== 1 ||
-      filtreRecence !== 'tout' || filtresNotes.length > 0;
+      filtreRecence !== 'tout' || filtresNotes.length > 0 || filtresPays.length > 0;
   }
 
   function dessinerBoutonTri() {
@@ -2501,6 +2573,7 @@
     triSens = { alpha: 1, date: -1, note: -1 };
     filtreRecence = 'tout';
     filtresNotes = [];
+    filtresPays = [];
     rafraichir();
   }
 
@@ -2732,6 +2805,7 @@
     dessinerTri();
     dessinerRecence();
     dessinerNotes();
+    dessinerFiltrePays();
     dessinerBoutonTri();
     dessinerListe();
     dessinerEpingles();
@@ -3968,6 +4042,10 @@
 
   document.getElementById('champ-pays').addEventListener('input', function (e) {
     afficherPropositionsPays(e.target.value);
+  });
+
+  document.getElementById('champ-filtre-pays').addEventListener('input', function (e) {
+    afficherPropositionsFiltrePays(e.target.value);
   });
 
   function ouvrirListe() {
