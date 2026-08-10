@@ -487,7 +487,7 @@
     border-radius: 12px;
   }
   .ligne-categorie-profil:nth-child(odd) { background: var(--pastille); }
-  .ligne-categorie-profil .point { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .ligne-categorie-profil .point-icone { flex: none; display: flex; }
   .ligne-categorie-profil .nom { flex: 1; font-family: var(--body); font-size: 14px; color: var(--texte); }
   .ligne-categorie-profil .col { width: 52px; text-align: right; font-family: var(--label); font-weight: 600; font-size: 13px; }
   .ligne-categorie-profil .col.testees { color: var(--accent); }
@@ -543,6 +543,85 @@
   .ligne-continent:nth-child(odd) { background: var(--pastille); }
   .ligne-continent .nom { flex: 1; font-family: var(--body); font-size: 14px; color: var(--texte); }
   .ligne-continent .compte { font-family: var(--label); font-weight: 600; font-size: 12px; color: var(--accent); }
+
+  .profil-mini-accordeon { margin-top: 16px; background: var(--pastille); border-radius: 14px; overflow: hidden; }
+  .profil-mini-entete {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 11px 14px;
+    background: transparent;
+    border: 0;
+    font-family: var(--label);
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--texte);
+  }
+  .profil-mini-entete .chevron { color: var(--texte-doux); transition: transform .2s; flex: none; }
+  .profil-mini-entete[aria-expanded="true"] .chevron { transform: rotate(180deg); }
+  .profil-mini-corps { padding: 0 8px 8px; }
+
+  .profil-section-fixe { padding-bottom: 6px; border-bottom: 1px solid var(--ligne); margin-bottom: 4px; }
+  .profil-section-titre {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 16px;
+    color: var(--texte);
+    padding: 15px 2px 2px;
+  }
+
+  .ligne-reco {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    border-radius: 12px;
+  }
+  .ligne-reco:nth-child(odd) { background: var(--pastille); }
+  .ligne-reco .rang {
+    font-family: var(--display); font-weight: 600; font-size: 12px; color: #FFFFFF;
+    background: var(--accent); flex: none; width: 20px; height: 20px; border-radius: 50%;
+    display: grid; place-items: center;
+  }
+  .ligne-reco .detail { flex: 1; min-width: 0; }
+  .ligne-reco .nom { display: block; font-family: var(--body); font-weight: 700; font-size: 13.5px; color: var(--texte); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ligne-reco .meta { display: block; font-family: var(--body); font-size: 11.5px; color: var(--texte-doux); margin-top: 1px; }
+  .ligne-reco .voir {
+    flex: none;
+    font-family: var(--label); font-weight: 600; font-size: 11px;
+    color: var(--accent); background: var(--accent-doux);
+    border: 0; border-radius: 999px; padding: 5px 10px;
+  }
+  .ligne-reco .voir:hover { filter: brightness(.97); }
+  .ligne-reco .retirer {
+    flex: none;
+    width: 22px; height: 22px; border-radius: 50%;
+    display: grid; place-items: center;
+    background: transparent; border: 0; color: var(--texte-doux); font-size: 15px;
+  }
+  .ligne-reco .retirer:hover { background: var(--pastille-forte); color: var(--danger); }
+
+  .reco-vide {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 9px 10px;
+    border-radius: 12px;
+    background: transparent;
+    border: 1px dashed var(--ligne-fort);
+    color: var(--texte-doux);
+    font-family: var(--body);
+    font-size: 13.5px;
+    margin-bottom: 6px;
+  }
+  .reco-vide .rang {
+    font-family: var(--display); font-weight: 600; font-size: 12px; color: var(--texte-doux);
+    background: var(--surface-2); flex: none; width: 20px; height: 20px; border-radius: 50%;
+    display: grid; place-items: center;
+  }
+  .reco-vide:hover { border-color: var(--accent-ligne); color: var(--texte); }
 
   .grille-regions { display: flex; flex-direction: column; gap: 6px; }
   .ligne-region {
@@ -1496,7 +1575,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v72</span>
+        <span class="version" id="version">v73</span>
       </header>
 
       <div class="filtres">
@@ -1757,6 +1836,24 @@
   </div>
 
   <div class="volet-corps">
+    <div class="profil-section-fixe">
+      <div class="profil-section-titre">Mes préférences</div>
+
+      <div class="profil-sous-titre">3 adresses que je recommande</div>
+      <div id="profil-recommandations"></div>
+      <div class="zone-auto" id="zone-recherche-reco">
+        <input class="saisie" id="champ-recherche-reco" type="text" placeholder="Chercher une adresse à ajouter…" autocomplete="off">
+        <div class="propositions" id="propositions-reco"></div>
+      </div>
+
+      <div class="profil-sous-titre">Mon top 3 pays</div>
+      <div id="profil-top-pays"></div>
+      <div class="zone-auto" id="zone-recherche-top-pays">
+        <input class="saisie" id="champ-recherche-top-pays" type="text" placeholder="Chercher un pays à ajouter…" autocomplete="off">
+        <div class="propositions" id="propositions-top-pays"></div>
+      </div>
+    </div>
+
     <div class="profil-accordeon">
       <button class="profil-accordeon-entete" id="accordeon-stats-bouton" aria-expanded="false">
         <span>Mes statistiques</span>
@@ -1788,8 +1885,15 @@
         <div class="profil-sous-titre">Par continent</div>
         <div id="profil-continents"></div>
 
-        <div class="profil-sous-titre">Pays goûtés</div>
-        <div id="profil-pays"></div>
+        <div class="profil-mini-accordeon">
+          <button class="profil-mini-entete" id="mini-pays-bouton" aria-expanded="false">
+            <span>Pays goûtés</span>
+            <svg class="chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <div class="profil-mini-corps" id="mini-pays-corps" hidden>
+            <div id="profil-pays"></div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -3368,13 +3472,15 @@
   }
 
   var CLE_PROFIL = 'tables:profil';
-  var monProfil = { pseudo: '', photo: '' };
+  var monProfil = { pseudo: '', photo: '', recommandations: [null, null, null], topPays: [null, null, null] };
 
   function chargerProfil() {
     try {
       var brut = localStorage.getItem(CLE_PROFIL);
       if (brut) monProfil = JSON.parse(brut);
     } catch (e) {}
+    if (!Array.isArray(monProfil.recommandations)) monProfil.recommandations = [null, null, null];
+    if (!Array.isArray(monProfil.topPays)) monProfil.topPays = [null, null, null];
   }
 
   function enregistrerProfil() {
@@ -3421,7 +3527,152 @@
 
   /* Les pays comptent uniquement à partir des adresses testées : « à tester »
      ne veut encore rien dire sur la cuisine qu'on y a vraiment goûtée. */
+  /* Les 3 adresses recommandées : on choisit parmi ses propres lieux (recherche
+     purement locale). Un lieu supprimé depuis libère automatiquement sa place. */
+  function dessinerRecommandations() {
+    var zone = document.getElementById('profil-recommandations');
+    zone.innerHTML = '';
+    var placesLibres = false;
+
+    monProfil.recommandations.forEach(function (id, i) {
+      var l = id && lieux.filter(function (x) { return x.identifiant === id; })[0];
+      if (l) {
+        var c = categorie((l.categories || [])[0]);
+        var ligne = document.createElement('div');
+        ligne.className = 'ligne-reco';
+        ligne.innerHTML = '<span class="rang">' + (i + 1) + '</span>' +
+          '<span class="detail"><span class="nom">' + echapper(l.nom) + '</span>' +
+          '<span class="meta">' + echapper(c.nom) + ' · ' + echapper(formaterAdresseAffichage(l.adresse)) + '</span></span>' +
+          '<button class="voir">Voir l\'adresse</button>' +
+          '<button class="retirer" aria-label="Retirer">×</button>';
+        ligne.querySelector('.voir').addEventListener('click', function () { voirSurCarte(l); });
+        ligne.querySelector('.retirer').addEventListener('click', function () {
+          monProfil.recommandations[i] = null;
+          enregistrerProfil();
+          dessinerRecommandations();
+        });
+        zone.appendChild(ligne);
+      } else {
+        placesLibres = true;
+        var vide = document.createElement('button');
+        vide.type = 'button';
+        vide.className = 'reco-vide';
+        vide.innerHTML = '<span class="rang">' + (i + 1) + '</span><span>Choisir une adresse</span>';
+        vide.addEventListener('click', function () { document.getElementById('champ-recherche-reco').focus(); });
+        zone.appendChild(vide);
+      }
+    });
+
+    document.getElementById('zone-recherche-reco').hidden = !placesLibres;
+  }
+
+  function afficherPropositionsReco(texte) {
+    var zone = document.getElementById('propositions-reco');
+    var q = normaliser(texte);
+    if (q.length < 1) { zone.innerHTML = ''; return; }
+
+    var dejaChoisis = monProfil.recommandations;
+    var resultats = lieux
+      .filter(function (l) { return dejaChoisis.indexOf(l.identifiant) === -1 && normaliser(l.nom).indexOf(q) !== -1; })
+      .slice(0, 6);
+
+    zone.innerHTML = '';
+    if (!resultats.length) {
+      zone.innerHTML = '<div class="proposition"><span class="p-etat">Rien trouvé dans tes adresses.</span></div>';
+      return;
+    }
+
+    resultats.forEach(function (l) {
+      var c = categorie((l.categories || [])[0]);
+      var b = document.createElement('button');
+      b.className = 'proposition';
+      b.type = 'button';
+      b.innerHTML = '<div class="p-nom">' + echapper(l.nom) + '</div><div class="p-adr">' + echapper(c.nom) + '</div>';
+      b.addEventListener('click', function () {
+        var pos = monProfil.recommandations.indexOf(null);
+        if (pos === -1) return;
+        monProfil.recommandations[pos] = l.identifiant;
+        enregistrerProfil();
+        document.getElementById('champ-recherche-reco').value = '';
+        zone.innerHTML = '';
+        dessinerRecommandations();
+      });
+      zone.appendChild(b);
+    });
+  }
+
+  /* Mon top 3 pays, même principe. */
+  function dessinerTopPays() {
+    var zone = document.getElementById('profil-top-pays');
+    zone.innerHTML = '';
+    var placesLibres = false;
+
+    monProfil.topPays.forEach(function (code, i) {
+      if (code) {
+        var ligne = document.createElement('div');
+        ligne.className = 'ligne-reco';
+        ligne.innerHTML = '<span class="rang">' + (i + 1) + '</span>' +
+          '<span class="detail" style="display:flex;align-items:center;gap:8px">' + imgDrapeau(code, 22) +
+          '<span class="nom">' + echapper(nomPays(code)) + '</span></span>' +
+          '<button class="retirer" aria-label="Retirer">×</button>';
+        ligne.querySelector('.retirer').addEventListener('click', function () {
+          monProfil.topPays[i] = null;
+          enregistrerProfil();
+          dessinerTopPays();
+        });
+        zone.appendChild(ligne);
+      } else {
+        placesLibres = true;
+        var vide = document.createElement('button');
+        vide.type = 'button';
+        vide.className = 'reco-vide';
+        vide.innerHTML = '<span class="rang">' + (i + 1) + '</span><span>Choisir un pays</span>';
+        vide.addEventListener('click', function () { document.getElementById('champ-recherche-top-pays').focus(); });
+        zone.appendChild(vide);
+      }
+    });
+
+    document.getElementById('zone-recherche-top-pays').hidden = !placesLibres;
+  }
+
+  function afficherPropositionsTopPays(texte) {
+    var zone = document.getElementById('propositions-top-pays');
+    var q = normaliser(texte);
+    if (q.length < 1) { zone.innerHTML = ''; return; }
+
+    var dejaChoisis = monProfil.topPays;
+    var resultats = PAYS_MONDE
+      .filter(function (p) { return dejaChoisis.indexOf(p.code) === -1 && normaliser(p.nom).indexOf(q) !== -1; })
+      .slice(0, 6);
+
+    zone.innerHTML = '';
+    if (!resultats.length) {
+      zone.innerHTML = '<div class="proposition"><span class="p-etat">Aucun pays trouvé.</span></div>';
+      return;
+    }
+
+    resultats.forEach(function (p) {
+      var b = document.createElement('button');
+      b.className = 'proposition';
+      b.type = 'button';
+      b.innerHTML = '<div class="p-nom">' + imgDrapeau(p.code) + ' ' + echapper(p.nom) + '</div>';
+      b.addEventListener('click', function () {
+        var pos = monProfil.topPays.indexOf(null);
+        if (pos === -1) return;
+        monProfil.topPays[pos] = p.code;
+        enregistrerProfil();
+        document.getElementById('champ-recherche-top-pays').value = '';
+        zone.innerHTML = '';
+        dessinerTopPays();
+      });
+      zone.appendChild(b);
+    });
+  }
+
   function dessinerProfil() {
+    dessinerRecommandations();
+    dessinerTopPays();
+
     var imgAvatar = document.getElementById('profil-avatar-img');
     var defautAvatar = document.getElementById('profil-avatar-defaut');
     if (monProfil.photo) {
@@ -3452,7 +3703,7 @@
       (l.categories || []).forEach(function (id) { cible[id] = (cible[id] || 0) + 1; });
     });
     document.getElementById('profil-categories').innerHTML = CATEGORIES.map(function (c) {
-      return '<div class="ligne-categorie-profil"><span class="point" style="background:' + c.couleur + '"></span>' +
+      return '<div class="ligne-categorie-profil"><span class="point-icone">' + iconeCategorieMini(c, 18) + '</span>' +
         '<span class="nom">' + echapper(c.nom) + '</span>' +
         '<span class="col testees">' + (comptesTestees[c.id] || 0) + '</span>' +
         '<span class="col a-tester">' + (comptesATester[c.id] || 0) + '</span></div>';
@@ -3764,16 +4015,21 @@
       if (l.commentaire) h += '<div class="fiche-mot">' + echapper(l.commentaire) + '</div>';
 
       f.innerHTML = h;
-      f.addEventListener('click', function () {
-        if (typeof l.lat !== 'number') { modifier(l.identifiant); return; }
-        document.getElementById('app').setAttribute('data-vue', 'carte');
-        majOnglets();
-        carte.setView([l.lat, l.lng], 16);
-        var m = epingles[l.identifiant];
-        if (m) setTimeout(function () { m.openPopup(); }, 260);
-      });
+      f.addEventListener('click', function () { voirSurCarte(l); });
       zone.appendChild(f);
     });
+  }
+
+  /* Centre la carte sur un lieu et ouvre sa bulle — réutilisé par la liste et
+     par « Mes préférences ». */
+  function voirSurCarte(l) {
+    if (typeof l.lat !== 'number') { modifier(l.identifiant); return; }
+    fermerProfil();
+    document.getElementById('app').setAttribute('data-vue', 'carte');
+    majOnglets();
+    carte.setView([l.lat, l.lng], 16);
+    var m = epingles[l.identifiant];
+    if (m) setTimeout(function () { m.openPopup(); }, 260);
   }
 
   function rafraichir() {
@@ -4942,6 +5198,7 @@
   brancherAccordeon('accordeon-stats-bouton', 'accordeon-stats-corps');
   brancherAccordeon('accordeon-pays-bouton', 'accordeon-pays-corps');
   brancherAccordeon('accordeon-regions-bouton', 'accordeon-regions-corps');
+  brancherAccordeon('mini-pays-bouton', 'mini-pays-corps');
   var minuterieProfilPseudo;
   document.getElementById('profil-pseudo').addEventListener('input', function (e) {
     var v = e.target.value;
@@ -4950,6 +5207,13 @@
       monProfil.pseudo = v.trim();
       enregistrerProfil();
     }, 400);
+  });
+
+  document.getElementById('champ-recherche-reco').addEventListener('input', function (e) {
+    afficherPropositionsReco(e.target.value);
+  });
+  document.getElementById('champ-recherche-top-pays').addEventListener('input', function (e) {
+    afficherPropositionsTopPays(e.target.value);
   });
 
   document.getElementById('languette-profil').addEventListener('click', ouvrirProfil);
