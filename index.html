@@ -380,7 +380,7 @@
   .profil-pseudo {
     display: block;
     width: 100%;
-    max-width: 220px;
+    max-width: 260px;
     margin: 0 auto;
     background: transparent;
     border: 0;
@@ -388,7 +388,7 @@
     text-align: center;
     font-family: var(--display);
     font-weight: 600;
-    font-size: 18px;
+    font-size: 25px;
     color: var(--texte);
     padding: 4px 6px 6px;
   }
@@ -400,7 +400,8 @@
   .profil-stats {
     display: flex;
     gap: 8px;
-    margin-bottom: 6px;
+    margin: -150px 22px 0;
+    position: relative;
   }
   .profil-stat {
     flex: 1;
@@ -1635,7 +1636,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v75</span>
+        <span class="version" id="version">v76</span>
       </header>
 
       <div class="filtres">
@@ -1899,6 +1900,7 @@
     </div>
     <input type="file" id="profil-photo-fichier" accept="image/*" hidden>
     <input class="profil-pseudo" id="profil-pseudo" type="text" placeholder="Ton pseudo" maxlength="30" autocomplete="off">
+    <div class="profil-stats" id="profil-stats"></div>
   </div>
 
   <div class="volet-corps">
@@ -1928,8 +1930,6 @@
         <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
       </button>
       <div class="profil-accordeon-corps" id="accordeon-stats-corps" hidden>
-        <div class="profil-stats" id="profil-stats"></div>
-
         <div class="profil-sous-titre">Par catégorie</div>
         <div class="ligne-categorie-entete">
           <span></span><span>Testées</span><span>À tester</span>
