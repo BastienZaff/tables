@@ -602,26 +602,27 @@
   }
   .ligne-reco .retirer:hover { background: var(--pastille-forte); color: var(--danger); }
 
-  .reco-vide {
+  .reco-ajouter {
     display: flex;
     align-items: center;
-    gap: 10px;
+    justify-content: center;
     width: 100%;
     padding: 9px 10px;
     border-radius: 12px;
     background: transparent;
     border: 1px dashed var(--ligne-fort);
-    color: var(--texte-doux);
-    font-family: var(--body);
-    font-size: 13.5px;
+    color: var(--accent);
+    font-family: var(--label);
+    font-weight: 600;
+    font-size: 12.5px;
     margin-bottom: 6px;
   }
-  .reco-vide .rang {
-    font-family: var(--display); font-weight: 600; font-size: 12px; color: var(--texte-doux);
-    background: var(--surface-2); flex: none; width: 20px; height: 20px; border-radius: 50%;
-    display: grid; place-items: center;
+  .reco-ajouter:hover { border-color: var(--accent-ligne); background: var(--accent-doux); }
+
+  .profil-pays-scroll {
+    max-height: 360px;
+    overflow-y: auto;
   }
-  .reco-vide:hover { border-color: var(--accent-ligne); color: var(--texte); }
 
   .grille-regions { display: flex; flex-direction: column; gap: 6px; }
   .ligne-region {
@@ -1634,7 +1635,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v74</span>
+        <span class="version" id="version">v75</span>
       </header>
 
       <div class="filtres">
@@ -1904,16 +1905,18 @@
     <div class="profil-section-fixe">
       <div class="profil-section-titre">Mes préférences</div>
 
-      <div class="profil-sous-titre">3 adresses que je recommande</div>
+      <div class="profil-sous-titre" id="titre-reco">Adresses que je recommande</div>
       <div id="profil-recommandations"></div>
-      <div class="zone-auto" id="zone-recherche-reco">
+      <button type="button" class="reco-ajouter" id="bouton-ajouter-reco">+ Ajouter une adresse</button>
+      <div class="zone-auto" id="zone-recherche-reco" hidden>
         <input class="saisie" id="champ-recherche-reco" type="text" placeholder="Chercher une adresse à ajouter…" autocomplete="off">
         <div class="propositions" id="propositions-reco"></div>
       </div>
 
-      <div class="profil-sous-titre">Mon top 3 pays</div>
+      <div class="profil-sous-titre" id="titre-top-pays">Mes pays préférés</div>
       <div id="profil-top-pays"></div>
-      <div class="zone-auto" id="zone-recherche-top-pays">
+      <button type="button" class="reco-ajouter" id="bouton-ajouter-top-pays">+ Ajouter un pays</button>
+      <div class="zone-auto" id="zone-recherche-top-pays" hidden>
         <input class="saisie" id="champ-recherche-top-pays" type="text" placeholder="Chercher un pays à ajouter…" autocomplete="off">
         <div class="propositions" id="propositions-top-pays"></div>
       </div>
@@ -1947,16 +1950,16 @@
         <div class="profil-barre-monde"><div class="profil-barre-monde-remplie" id="profil-barre-monde-remplie"></div></div>
         <div class="profil-barre-legende" id="profil-barre-legende"></div>
 
-        <div class="profil-sous-titre">Par continent</div>
-        <div id="profil-continents"></div>
+        <div class="profil-sous-titre">Pays goûtés</div>
+        <div class="profil-pays-scroll" id="profil-pays"></div>
 
         <div class="profil-mini-accordeon">
-          <button class="profil-mini-entete" id="mini-pays-bouton" aria-expanded="false">
-            <span>Pays goûtés</span>
+          <button class="profil-mini-entete" id="mini-continents-bouton" aria-expanded="false">
+            <span>Par continent</span>
             <svg class="chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
           </button>
-          <div class="profil-mini-corps" id="mini-pays-corps" hidden>
-            <div id="profil-pays"></div>
+          <div class="profil-mini-corps" id="mini-continents-corps" hidden>
+            <div id="profil-continents"></div>
           </div>
         </div>
       </div>
@@ -3621,15 +3624,17 @@
   }
 
   var CLE_PROFIL = 'tables:profil';
-  var monProfil = { pseudo: '', photo: '', recommandations: [null, null, null], topPays: [null, null, null] };
+  var monProfil = { pseudo: '', photo: '', recommandations: [], topPays: [] };
 
   function chargerProfil() {
     try {
       var brut = localStorage.getItem(CLE_PROFIL);
       if (brut) monProfil = JSON.parse(brut);
     } catch (e) {}
-    if (!Array.isArray(monProfil.recommandations)) monProfil.recommandations = [null, null, null];
-    if (!Array.isArray(monProfil.topPays)) monProfil.topPays = [null, null, null];
+    /* Anciens profils : tableau à 3 emplacements fixes, avec des trous (null).
+       On repasse en tableau compact, sans emplacement vide, plafonné à 3. */
+    monProfil.recommandations = (Array.isArray(monProfil.recommandations) ? monProfil.recommandations : []).filter(Boolean).slice(0, 3);
+    monProfil.topPays = (Array.isArray(monProfil.topPays) ? monProfil.topPays : []).filter(Boolean).slice(0, 3);
   }
 
   function enregistrerProfil() {
@@ -3676,43 +3681,55 @@
 
   /* Les pays comptent uniquement à partir des adresses testées : « à tester »
      ne veut encore rien dire sur la cuisine qu'on y a vraiment goûtée. */
-  /* Les 3 adresses recommandées : on choisit parmi ses propres lieux (recherche
-     purement locale). Un lieu supprimé depuis libère automatiquement sa place. */
+  /* Les adresses recommandées (facultatif, jusqu'à 3) : on choisit parmi ses
+     propres lieux (recherche purement locale). Un lieu supprimé depuis libère
+     automatiquement sa place. */
+  function libelleRecommandations(n) {
+    if (n === 1) return '1 adresse que je recommande';
+    if (n > 1) return n + ' adresses que je recommande';
+    return 'Adresses que je recommande';
+  }
+
   function dessinerRecommandations() {
     var zone = document.getElementById('profil-recommandations');
     zone.innerHTML = '';
-    var placesLibres = false;
 
-    monProfil.recommandations.forEach(function (id, i) {
-      var l = id && lieux.filter(function (x) { return x.identifiant === id; })[0];
-      if (l) {
-        var c = categorie((l.categories || [])[0]);
-        var ligne = document.createElement('div');
-        ligne.className = 'ligne-reco';
-        ligne.innerHTML = '<span class="rang">' + (i + 1) + '</span>' +
-          '<span class="detail"><span class="nom">' + echapper(l.nom) + '</span>' +
-          '<span class="meta">' + echapper(c.nom) + ' · ' + echapper(villeEtDepartement(l)) + '</span></span>' +
-          '<button class="voir">Voir l\'adresse</button>' +
-          '<button class="retirer" aria-label="Retirer">×</button>';
-        ligne.querySelector('.voir').addEventListener('click', function () { ouvrirRecommandation(l); });
-        ligne.querySelector('.retirer').addEventListener('click', function () {
-          monProfil.recommandations[i] = null;
-          enregistrerProfil();
-          dessinerRecommandations();
-        });
-        zone.appendChild(ligne);
-      } else {
-        placesLibres = true;
-        var vide = document.createElement('button');
-        vide.type = 'button';
-        vide.className = 'reco-vide';
-        vide.innerHTML = '<span class="rang">' + (i + 1) + '</span><span>Choisir une adresse</span>';
-        vide.addEventListener('click', function () { document.getElementById('champ-recherche-reco').focus(); });
-        zone.appendChild(vide);
-      }
+    var choisis = monProfil.recommandations
+      .map(function (id) { return lieux.filter(function (x) { return x.identifiant === id; })[0]; })
+      .filter(Boolean);
+
+    if (choisis.length !== monProfil.recommandations.length) {
+      monProfil.recommandations = choisis.map(function (l) { return l.identifiant; });
+      enregistrerProfil();
+    }
+
+    document.getElementById('titre-reco').textContent = libelleRecommandations(choisis.length);
+
+    choisis.forEach(function (l, i) {
+      var c = categorie((l.categories || [])[0]);
+      var ligne = document.createElement('div');
+      ligne.className = 'ligne-reco';
+      ligne.innerHTML = '<span class="rang">' + (i + 1) + '</span>' +
+        '<span class="detail"><span class="nom">' + echapper(l.nom) + '</span>' +
+        '<span class="meta">' + echapper(c.nom) + ' · ' + echapper(villeEtDepartement(l)) + '</span></span>' +
+        '<button class="voir">Voir l\'adresse</button>' +
+        '<button class="retirer" aria-label="Retirer">×</button>';
+      ligne.querySelector('.voir').addEventListener('click', function () { ouvrirRecommandation(l); });
+      ligne.querySelector('.retirer').addEventListener('click', function () {
+        monProfil.recommandations.splice(i, 1);
+        enregistrerProfil();
+        dessinerRecommandations();
+      });
+      zone.appendChild(ligne);
     });
 
-    document.getElementById('zone-recherche-reco').hidden = !placesLibres;
+    var complet = choisis.length >= 3;
+    document.getElementById('bouton-ajouter-reco').hidden = complet;
+    if (complet) {
+      document.getElementById('zone-recherche-reco').hidden = true;
+      document.getElementById('champ-recherche-reco').value = '';
+      document.getElementById('propositions-reco').innerHTML = '';
+    }
   }
 
   function afficherPropositionsReco(texte) {
@@ -3738,50 +3755,54 @@
       b.type = 'button';
       b.innerHTML = '<div class="p-nom">' + echapper(l.nom) + '</div><div class="p-adr">' + echapper(c.nom) + '</div>';
       b.addEventListener('click', function () {
-        var pos = monProfil.recommandations.indexOf(null);
-        if (pos === -1) return;
-        monProfil.recommandations[pos] = l.identifiant;
+        if (monProfil.recommandations.length >= 3) return;
+        monProfil.recommandations.push(l.identifiant);
         enregistrerProfil();
         document.getElementById('champ-recherche-reco').value = '';
         zone.innerHTML = '';
+        document.getElementById('zone-recherche-reco').hidden = true;
+        document.getElementById('bouton-ajouter-reco').hidden = monProfil.recommandations.length >= 3;
         dessinerRecommandations();
       });
       zone.appendChild(b);
     });
   }
 
-  /* Mon top 3 pays, même principe. */
+  /* Mon top pays (facultatif, jusqu'à 3), même principe. */
+  function libelleTopPays(n) {
+    if (n === 1) return 'Ma gastronomie préférée';
+    if (n > 1) return 'Mes ' + n + ' gastronomies préférées';
+    return 'Mes pays préférés';
+  }
+
   function dessinerTopPays() {
     var zone = document.getElementById('profil-top-pays');
     zone.innerHTML = '';
-    var placesLibres = false;
+
+    document.getElementById('titre-top-pays').textContent = libelleTopPays(monProfil.topPays.length);
 
     monProfil.topPays.forEach(function (code, i) {
-      if (code) {
-        var ligne = document.createElement('div');
-        ligne.className = 'ligne-reco';
-        ligne.innerHTML = '<span class="rang">' + (i + 1) + '</span>' +
-          '<span class="detail" style="display:flex;align-items:center;gap:8px">' + imgDrapeau(code, 22) +
-          '<span class="nom">' + echapper(nomPays(code)) + '</span></span>' +
-          '<button class="retirer" aria-label="Retirer">×</button>';
-        ligne.querySelector('.retirer').addEventListener('click', function () {
-          monProfil.topPays[i] = null;
-          enregistrerProfil();
-          dessinerTopPays();
-        });
-        zone.appendChild(ligne);
-      } else {
-        placesLibres = true;
-        var vide = document.createElement('button');
-        vide.type = 'button';
-        vide.className = 'reco-vide';
-        vide.innerHTML = '<span class="rang">' + (i + 1) + '</span><span>Choisir un pays</span>';
-        vide.addEventListener('click', function () { document.getElementById('champ-recherche-top-pays').focus(); });
-        zone.appendChild(vide);
-      }
+      var ligne = document.createElement('div');
+      ligne.className = 'ligne-reco';
+      ligne.innerHTML = '<span class="rang">' + (i + 1) + '</span>' +
+        '<span class="detail" style="display:flex;align-items:center;gap:8px">' + imgDrapeau(code, 22) +
+        '<span class="nom">' + echapper(nomPays(code)) + '</span></span>' +
+        '<button class="retirer" aria-label="Retirer">×</button>';
+      ligne.querySelector('.retirer').addEventListener('click', function () {
+        monProfil.topPays.splice(i, 1);
+        enregistrerProfil();
+        dessinerTopPays();
+      });
+      zone.appendChild(ligne);
     });
 
-    document.getElementById('zone-recherche-top-pays').hidden = !placesLibres;
+    var complet = monProfil.topPays.length >= 3;
+    document.getElementById('bouton-ajouter-top-pays').hidden = complet;
+    if (complet) {
+      document.getElementById('zone-recherche-top-pays').hidden = true;
+      document.getElementById('champ-recherche-top-pays').value = '';
+      document.getElementById('propositions-top-pays').innerHTML = '';
+    }
   }
 
   function afficherPropositionsTopPays(texte) {
@@ -3806,12 +3827,13 @@
       b.type = 'button';
       b.innerHTML = '<div class="p-nom">' + imgDrapeau(p.code) + ' ' + echapper(p.nom) + '</div>';
       b.addEventListener('click', function () {
-        var pos = monProfil.topPays.indexOf(null);
-        if (pos === -1) return;
-        monProfil.topPays[pos] = p.code;
+        if (monProfil.topPays.length >= 3) return;
+        monProfil.topPays.push(p.code);
         enregistrerProfil();
         document.getElementById('champ-recherche-top-pays').value = '';
         zone.innerHTML = '';
+        document.getElementById('zone-recherche-top-pays').hidden = true;
+        document.getElementById('bouton-ajouter-top-pays').hidden = monProfil.topPays.length >= 3;
         dessinerTopPays();
       });
       zone.appendChild(b);
@@ -5347,7 +5369,7 @@
   brancherAccordeon('accordeon-stats-bouton', 'accordeon-stats-corps');
   brancherAccordeon('accordeon-pays-bouton', 'accordeon-pays-corps');
   brancherAccordeon('accordeon-regions-bouton', 'accordeon-regions-corps');
-  brancherAccordeon('mini-pays-bouton', 'mini-pays-corps');
+  brancherAccordeon('mini-continents-bouton', 'mini-continents-corps');
   var minuterieProfilPseudo;
   document.getElementById('profil-pseudo').addEventListener('input', function (e) {
     var v = e.target.value;
@@ -5363,6 +5385,36 @@
   });
   document.getElementById('champ-recherche-top-pays').addEventListener('input', function (e) {
     afficherPropositionsTopPays(e.target.value);
+  });
+
+  document.getElementById('bouton-ajouter-reco').addEventListener('click', function () {
+    document.getElementById('bouton-ajouter-reco').hidden = true;
+    document.getElementById('zone-recherche-reco').hidden = false;
+    document.getElementById('champ-recherche-reco').focus();
+  });
+  document.getElementById('champ-recherche-reco').addEventListener('blur', function () {
+    setTimeout(function () {
+      if (!document.getElementById('champ-recherche-reco').value.trim()) {
+        document.getElementById('propositions-reco').innerHTML = '';
+        document.getElementById('zone-recherche-reco').hidden = true;
+        if (monProfil.recommandations.length < 3) document.getElementById('bouton-ajouter-reco').hidden = false;
+      }
+    }, 180);
+  });
+
+  document.getElementById('bouton-ajouter-top-pays').addEventListener('click', function () {
+    document.getElementById('bouton-ajouter-top-pays').hidden = true;
+    document.getElementById('zone-recherche-top-pays').hidden = false;
+    document.getElementById('champ-recherche-top-pays').focus();
+  });
+  document.getElementById('champ-recherche-top-pays').addEventListener('blur', function () {
+    setTimeout(function () {
+      if (!document.getElementById('champ-recherche-top-pays').value.trim()) {
+        document.getElementById('propositions-top-pays').innerHTML = '';
+        document.getElementById('zone-recherche-top-pays').hidden = true;
+        if (monProfil.topPays.length < 3) document.getElementById('bouton-ajouter-top-pays').hidden = false;
+      }
+    }, 180);
   });
 
   document.getElementById('languette-profil').addEventListener('click', ouvrirProfil);
