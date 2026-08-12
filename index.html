@@ -516,6 +516,7 @@
     height: 12px;
     border-radius: 999px;
     background: var(--pastille-forte);
+    border: 1px solid var(--ligne-fort);
     overflow: hidden;
     margin-top: 4px;
   }
@@ -539,12 +540,13 @@
   .ligne-continent {
     display: flex;
     align-items: center;
-    gap: 9px;
-    padding: 8px 10px;
-    border-radius: 12px;
+    justify-content: space-between;
+    padding: 10px 10px 6px;
+    margin-top: 12px;
   }
-  .ligne-continent:nth-child(odd) { background: var(--pastille); }
-  .ligne-continent .nom { flex: 1; font-family: var(--body); font-size: 14px; color: var(--texte); }
+  .ligne-continent:first-child { margin-top: 0; }
+  .ligne-continent:nth-child(odd) { background: transparent; }
+  .ligne-continent .nom { font-family: var(--display); font-weight: 700; font-size: 13px; color: var(--texte); text-transform: uppercase; letter-spacing: .3px; }
   .ligne-continent .compte { font-family: var(--label); font-weight: 600; font-size: 12px; color: var(--accent); }
 
   .profil-mini-accordeon { margin-top: 16px; background: var(--pastille); border-radius: 14px; overflow: hidden; }
@@ -1639,7 +1641,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v83</span>
+        <span class="version" id="version">v85</span>
       </header>
 
       <div class="filtres">
@@ -1956,22 +1958,12 @@
 
         <div class="profil-sous-titre">Pays goûtés</div>
         <div class="profil-pays-scroll" id="profil-pays"></div>
-
-        <div class="profil-mini-accordeon">
-          <button class="profil-mini-entete" id="mini-continents-bouton" aria-expanded="false">
-            <span>Par continent</span>
-            <svg class="chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-          </button>
-          <div class="profil-mini-corps" id="mini-continents-corps" hidden>
-            <div id="profil-continents"></div>
-          </div>
-        </div>
       </div>
     </div>
 
     <div class="profil-accordeon">
       <button class="profil-accordeon-entete" id="accordeon-regions-bouton" aria-expanded="false">
-        <span class="profil-accordeon-label"><img class="profil-accordeon-icone" src="data:image/png;base64,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" alt="">Bonus : régions de France</span>
+        <span class="profil-accordeon-label"><img class="profil-accordeon-icone" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAALlElEQVR42u1abYxcV3l+3nPO/ZhZb20TNzQJIBAhCeukSRFt09CQILnwB/EDmOEj/CgSZO02IaQhoUkc3blxYqBNqFCKE5sYMCBEdpAggEB81Q4IWiIT0qQeIdkkzYdrY8dxVXtn7sc55+mPmbHX3g/v2rO7JvGRRrvavXPuOc95zvO+73MOcKadaWfamfYybrJQLyIgSJJj35emFIAvWQCYJAqAAuAlTf3JPvMHBwBrNY2REU6cEO+9sYJ2tiK3fhgAvNXjlWWVF+Tme8ePPEMI6jUlzab7gwSApKDRkP7Eufa6S53hO+F5tfP+IgIrBIgBwIO5FvUCBDtF8HPCfy9MNz46gRVYCEYMDICxWk3XeytXJmtWCeQT3vNvgjhUcB50HtZ7eHa3vBKBUQLRGtAKrihBys9AfjZYt+HhPpPmmw0DAYBjNS31pjt00+qz4yX6s0apa6AEeV6ApIWICCkUEem9kwBBAiIeJAHoOAoFIihL+53x3N2w/DMb/3trcpV5W/qIPW0B4NiYlnrdjd82+hdhaB4ygXlt1s48IBSBnmOkcCAQVyJtrd2X5dmHhj+1+cdMEiNpak87APor37l99GpjzPeMkqFOXlqlxJyiltjQGEMFm+e2PrR+47eYXGVkHpigTiXESb3pDq299hJjzHcEGMqK0p3q5AFARExeWu+t11EYPNS+9SNXSvqI7YvjojOAhKCRyD7sry7z3B4G5sJOXjglogc5OBIuDLS2zu8JrbkU4SsODDo6nByizZqSNPV/ZP2dYSW6sJMVdqbJEyBJS8KxK33s/k5LTp8JikDnhbVhHJ6TSf4vkqYerZYsKgOYJAppynzt6guUUk+CVI5UMk1fJJxWooMoBEjQOgCEGAOIwBYFrKM7gWA6Y7T2jpeH6zb8apDhcc4M2AaoXv5+YxAFgfOeM00+jkNNYDzP868UeXGNLd1fWW8vL/L8fXmef8ET/xvHoSbhZhBFaqPhvL9lUTWAgAjAg8kNyyou22WUPqt0niKT+yHh4kqoy9L+wDt3Q3zXxp1T9rluzavLQv45CM37srxwgslMIEAtAoJZqOwFkj74fJIkKh2AFsxNscdqCvWmq7j8rVEUnpVl5ZTUJeniSqTLvPx6uO7+a3pbx2Bli2gCTQC1GoAdIyJ3pM8BeH+2dvX+OA6vyzrFpD4FEOe9jStxJevwHQA2NwCVAgsMwI6RfhZ3JZQiuqnc8ZP3YRioPC927FIHPkxS0KwrqR+XyDQnaMrKlkj9geuztav/LIqCt+RFOR0TIIIrAWxenCjQavUUmyvR3foyhXRTKSVwvP3itFmg0dBSn16wJoY0L/yk955CyhS5gYj3IOSNPS9h4UWwr7wi+BN4D+DYgZL0kdY6z/Ln9wTZDwnIbAYq9aYjIZU7H/hlWdhWFAaKpJ9UaXoPIc7mxmsDmYp+8wkAjxYxIh7VqaO3UIwGIf/5unRLhiSRWTs+jUSLCKGwHVp3K+bjOycBYfzCLhsv+BaQoz/pp50U2dsVB7qAbZt7okW8MPO6Clf4YlEywYmUOwQlEBFOyt1AKMGwAETrbM5t7hBRani6f4sIQI7j2TxbHBGs1frP74EIyMljhPVw5CUcq2k0m7NfqUbDCUB6XgbnATlOYEUIpQCR30uz6UjKIAzVuQEwMtIf1E4o6ZHiGKVWeVn6MAzO7zx51hX9knlWHiKA7NbREa3Vm/Ki5KQwSHYBAHf1ANMLz4CjX/o1SHCKMEgRahEo4k4BiB0jMlMZS0CwarkSEVJhXRAY44+LAMcIkZfHBpkKz7V29z2iby+ywmqB4eQx6iwvXVwJr+6sXbNO0vSOI5kg4NFosLeCAkAhbTgZlTK7Y/XHozB8dz5tWS3aFRYK/I9jc5KFrgZ7BxyZ3ft4HAaXZEXpRWSqFXZRFGhr3efM4crtcu9R+3ti+6+kFl7oV6w1Rt9RWOf8FJUlSR8Zowpnn4t0doGkW7J+XbIY5bCRNLWd20f/Ka7GN2ftzIpM7QKR9HElVrYod5J8EMBPc1s8vwRVX+jiXBG5ykM+GkXBxXkn9xRRMo1FFldi3el0tlTv3vThQdpjc7evetTzxDddYW+WGXRERFTWyVwcmDcgCD5j8wKBCv4vl5JK1NIgCgHr0C2ARMtMsuO9KKXGAAAr/57AI4tviWV2z2NxGP5pXloPTG9o9NJaLyJGK4FAYL3vWuaAmmYLHS2uAqPKwj4TBdlFg6T/yVtijUR3ixi9GUYLSZ7A5FT9bWI9WTrPvvk50+T7wquCAFT4qqRbMiaJGeSB6skB0CtwCqe+XnTyF43WmrMclHRTHJlY4hJy5DPJCFFKF1mekfrBiZFoUQEQgEwSs/TTnz/gvf+iiUIBOafy1EOBEBh4hLSIWCKghfR9J6UAiAviSEj/UPXuDc9wrKYHfV54Kj67JyDe+s+VWX7YqK5DMjsAiQrbCGlxSCr4H7Mcz5oV2KeXopAAqswh7UPURUfbTqcQHd2zffv24NcHVylO4RVMFapn89xJi+CRFx09GbonrlZuytqdaUPixMkXEuDh6p/jieC12K+Xoq1CeCiId3hVmOO6v4xQPbjbvWLf07rY/cw3ltyy/gPHCaNGoyFotYiRkaOgr2wJdozIXI7RTg2APsq3fWxFYexvlcgy65yIyNQuMQQBLX6vl2PNWaMoRSHu0V5AlF6wtGpwS+11iGJQPKAcDgj940rUj4T4t9csxRMiUp6IAe3bRs8dWr9x9+DzgGPVnUwSI5+6b3+29tr1Jq7eY9sde6J+BcQw28gQQoHw6KqiBhHQQuUljNfiKFChrIirapU2WHX4EPDUQb/rd4f56PKHv/To8GM/3ZUvWbbHFGVbtEQEzgPlTb4Svld3in8HsOZEB6unfI6HNHVMEoUXX/zXjNlHwjC4MC9Kr04Q3jzUkYkfHxEgClQKIFCWYFmi77+ZOFLn6yGcXxV+0FRiAAKnVfe+QWC6nA5DoFP8Yr5F8EhEQKslct99uYFcL92gP7A4LQIRgRaBgQBZ5vyhwyjbeTFeFtZZ380pHIm8KF2WFRnK2TtGAzltlWbTcaymg7vv/0me5V+NKpH2cwyLc9h2ioQBYHqegeBo9NFdVotaUAAAoLFjhEwSFS8JbiyyfG9g9CRnd3bVJjnTgemgxXxgAKRp6rGyJXLb5w+QssYYIyIyZwC8KCciHgt0gXCgFw6k3nRMEhPfdf+3O51sc1SJTa/gOW2bGXiPjYZjq6X35u0btFJvicLgory0Ux51nQ5NzYNIEQDOufdr4wA+6MhCdx1kviwAOBIVksREdz3wG1uU1wdxqAG6lw0AACBpapkkprJ+06a8nT0YD1WM96efHqh57T1NHcdqOtrPv8s72S+r1ciQpxcT5hWA3rkAZdOmMlLqPUVhnzNhoD3puscqJEFP0nU/cD3Dgy8NBnS3gmetpiXdsLe0fJf3bFcCrUuoTGsjJqyooDKsw8qwDuIhrbQJe3WRI2F7We68AWIWAuV+qiz1DY/zH/+29pw+781tiW4dgj9si+xpAvuEKB05RG1eCcGrh4ZRURooc6DTAbzvXqKS7p0EOVGdPlvrzCwU1aTedGO1mpZPf/n72Mof1Z/Y+ZuyDLd/6x/O3zPxuY0bGWiPV40fwsVQ/q8BdZUILlu6DBEA5G2NsssIS1J3LyF2XWKCIOhgtPHE0GkFAADUu+FR6beJHQO+2/97klC1Wk0ZGdnB0VEpMYqnATyN3jPPdPj69jjeSuDt8O6KINavqYbhUFCJEUQR4F2XEyKAp/GFPSjCX/VcIs6bI3QqhKiNUTVr8JhUOlMSQhqAbAPkasBNvIewezernT/GG8/+8n2XRU89vpJBfC69W6KUdJSoZz2wvWyPb11yz5a9gzw/WNRGUm3dSkNSz+E782+KLhIYXRFsNNQRijcB9O4dAtuAxjYnAzRlzrQz7Ux76bb/BzmyMUwh2DeiAAAAAElFTkSuQmCC" alt="">Régions de France</span>
         <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
       </button>
       <div class="profil-accordeon-corps" id="accordeon-regions-corps" hidden>
@@ -3924,23 +3916,28 @@
       if (c) comptesContinents[c] = (comptesContinents[c] || 0) + 1;
     });
     var ordreContinents = ['Europe', 'Asie', 'Afrique', 'Amérique du Nord', 'Amérique du Sud', 'Océanie'];
-    document.getElementById('profil-continents').innerHTML = ordreContinents.map(function (c) {
-      return '<div class="ligne-continent"><span class="nom">' + c + '</span>' +
-        '<span class="compte">' + (comptesContinents[c] || 0) + (comptesContinents[c] === 1 ? ' pays' : ' pays') + '</span></div>';
-    }).join('');
 
     var codesTries = codesPays.sort(function (a, b) {
       return comptesPays[b] - comptesPays[a] || nomPays(a).localeCompare(nomPays(b), 'fr');
     });
 
+    /* Un seul bloc : chaque continent en titre, et juste en dessous les pays
+       goûtés qui s'y trouvent (avec drapeau). Les continents sans pays goûté
+       n'affichent que leur compteur à 0, sans sous-liste. */
     var zonePays = document.getElementById('profil-pays');
     if (!codesTries.length) {
       zonePays.innerHTML = '<div class="profil-vide">Aucun pays renseigné pour l\'instant — ajoutes-en depuis la fiche d\'une adresse testée.</div>';
     } else {
-      zonePays.innerHTML = codesTries.map(function (code) {
-        return '<div class="ligne-pays-profil">' + imgDrapeau(code, 22) +
-          '<span class="nom">' + echapper(nomPays(code)) + '</span>' +
-          '<span class="compte">' + comptesPays[code] + '</span></div>';
+      zonePays.innerHTML = ordreContinents.map(function (continent) {
+        var codesContinent = codesTries.filter(function (code) { return continentPays(code) === continent; });
+        var entete = '<div class="ligne-continent"><span class="nom">' + continent + '</span>' +
+          '<span class="compte">' + codesContinent.length + (codesContinent.length === 1 ? ' pays' : ' pays') + '</span></div>';
+        var lignesPays = codesContinent.map(function (code) {
+          return '<div class="ligne-pays-profil">' + imgDrapeau(code, 22) +
+            '<span class="nom">' + echapper(nomPays(code)) + '</span>' +
+            '<span class="compte">' + comptesPays[code] + '</span></div>';
+        }).join('');
+        return entete + lignesPays;
       }).join('');
     }
 
@@ -5373,7 +5370,6 @@
   brancherAccordeon('accordeon-stats-bouton', 'accordeon-stats-corps');
   brancherAccordeon('accordeon-pays-bouton', 'accordeon-pays-corps');
   brancherAccordeon('accordeon-regions-bouton', 'accordeon-regions-corps');
-  brancherAccordeon('mini-continents-bouton', 'mini-continents-corps');
   var minuterieProfilPseudo;
   document.getElementById('profil-pseudo').addEventListener('input', function (e) {
     var v = e.target.value;
