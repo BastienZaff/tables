@@ -400,10 +400,7 @@
   .profil-stats {
     display: flex;
     gap: 8px;
-    position: absolute;
-    left: 22px;
-    right: 22px;
-    bottom: 142px;
+    margin-bottom: 20px;
   }
   .profil-stat {
     flex: 1;
@@ -1639,7 +1636,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v79</span>
+        <span class="version" id="version">v80</span>
       </header>
 
       <div class="filtres">
@@ -1903,10 +1900,11 @@
     </div>
     <input type="file" id="profil-photo-fichier" accept="image/*" hidden>
     <input class="profil-pseudo" id="profil-pseudo" type="text" placeholder="Ton pseudo" maxlength="30" autocomplete="off">
-    <div class="profil-stats" id="profil-stats"></div>
   </div>
 
   <div class="volet-corps">
+    <div class="profil-stats" id="profil-stats"></div>
+
     <div class="profil-section-fixe">
       <div class="profil-section-titre">Mes préférences</div>
 
