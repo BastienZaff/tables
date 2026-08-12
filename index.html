@@ -513,41 +513,63 @@
   .ligne-departement .compte { font-family: var(--label); font-weight: 600; font-size: 11.5px; color: var(--texte-doux); text-align: right; }
 
   .profil-barre-monde {
-    height: 12px;
+    height: 16px;
     border-radius: 999px;
     background: var(--pastille-forte);
     border: 1px solid var(--ligne-fort);
+    box-shadow: inset 0 1px 3px rgba(42,17,69,.14);
     overflow: hidden;
-    margin-top: 4px;
+    margin-top: 6px;
   }
   .profil-barre-monde-remplie {
     height: 100%;
     border-radius: 999px;
     background: linear-gradient(90deg, #C24DE8, var(--accent));
-    transition: width .5s ease;
+    box-shadow: 0 0 10px rgba(194,77,232,.45);
+    transition: width .6s cubic-bezier(.34,1.3,.64,1);
     width: 0%;
   }
   .profil-barre-legende {
     display: flex;
     justify-content: space-between;
-    margin-top: 7px;
+    align-items: center;
+    margin-top: 9px;
     font-family: var(--label);
-    font-size: 12px;
+    font-size: 12.5px;
     color: var(--texte-doux);
   }
-  .profil-barre-legende strong { color: var(--texte); font-weight: 700; }
+  .profil-barre-legende strong { color: var(--texte); font-weight: 700; font-size: 13.5px; }
+  .profil-barre-legende span:last-child {
+    background: var(--accent-doux);
+    color: var(--accent);
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+  }
 
   .ligne-continent {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    width: 100%;
     padding: 10px 10px 6px;
     margin-top: 12px;
+    background: transparent;
+    border: 0;
+    text-align: left;
+    cursor: default;
   }
   .ligne-continent:first-child { margin-top: 0; }
   .ligne-continent:nth-child(odd) { background: transparent; }
   .ligne-continent .nom { font-family: var(--display); font-weight: 700; font-size: 13px; color: var(--texte); text-transform: uppercase; letter-spacing: .3px; }
   .ligne-continent .compte { font-family: var(--label); font-weight: 600; font-size: 12px; color: var(--accent); }
+  button.ligne-continent { cursor: pointer; }
+  button.ligne-continent:hover .nom { color: var(--accent); }
+  .ligne-continent-droite { display: flex; align-items: center; gap: 6px; }
+  .chevron-mini { color: var(--accent); flex: none; transition: transform .2s; }
+  .ligne-continent[aria-expanded="true"] .chevron-mini { transform: rotate(180deg); }
+  .continent-corps { padding-top: 2px; }
 
   .profil-mini-accordeon { margin-top: 16px; background: var(--pastille); border-radius: 14px; overflow: hidden; }
   .profil-mini-entete {
@@ -1641,7 +1663,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v85</span>
+        <span class="version" id="version">v86</span>
       </header>
 
       <div class="filtres">
@@ -3224,6 +3246,18 @@
     if (b) { fermerMiniModale(); modifier(b.getAttribute('data-modifier')); }
   });
 
+  /* Chaque continent (dans le tour du monde) s'ouvre/se ferme individuellement
+     au clic. La liste étant reconstruite à chaque rendu, on délègue l'écoute
+     sur le conteneur plutôt que sur chaque bouton. */
+  document.getElementById('profil-pays').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-continent-toggle]');
+    if (!b) return;
+    var corps = b.nextElementSibling;
+    var ouvert = b.getAttribute('aria-expanded') === 'true';
+    b.setAttribute('aria-expanded', ouvert ? 'false' : 'true');
+    if (corps) corps.hidden = ouvert;
+  });
+
   /* La petite fenêtre de recommandation : s'ouvre par-dessus la vue actuelle
      (pas de bascule vers la carte), avec une croix pour la refermer. Si le
      lieu recommandé est déjà dans les propres adresses de la personne qui
@@ -3921,23 +3955,33 @@
       return comptesPays[b] - comptesPays[a] || nomPays(a).localeCompare(nomPays(b), 'fr');
     });
 
-    /* Un seul bloc : chaque continent en titre, et juste en dessous les pays
-       goûtés qui s'y trouvent (avec drapeau). Les continents sans pays goûté
-       n'affichent que leur compteur à 0, sans sous-liste. */
+    /* Un seul bloc : chaque continent en titre cliquable (ouvre/ferme sa
+       liste), et en dessous les pays goûtés qui s'y trouvent (avec drapeau).
+       Les continents sans pays goûté restent affichés (compteur à 0) mais
+       ne sont pas cliquables, faute de contenu à déplier. */
     var zonePays = document.getElementById('profil-pays');
     if (!codesTries.length) {
       zonePays.innerHTML = '<div class="profil-vide">Aucun pays renseigné pour l\'instant — ajoutes-en depuis la fiche d\'une adresse testée.</div>';
     } else {
       zonePays.innerHTML = ordreContinents.map(function (continent) {
         var codesContinent = codesTries.filter(function (code) { return continentPays(code) === continent; });
-        var entete = '<div class="ligne-continent"><span class="nom">' + continent + '</span>' +
-          '<span class="compte">' + codesContinent.length + (codesContinent.length === 1 ? ' pays' : ' pays') + '</span></div>';
+        var libelleCompte = codesContinent.length + ' pays';
         var lignesPays = codesContinent.map(function (code) {
           return '<div class="ligne-pays-profil">' + imgDrapeau(code, 22) +
             '<span class="nom">' + echapper(nomPays(code)) + '</span>' +
             '<span class="compte">' + comptesPays[code] + '</span></div>';
         }).join('');
-        return entete + lignesPays;
+
+        if (!codesContinent.length) {
+          return '<div class="ligne-continent ligne-continent-vide"><span class="nom">' + continent + '</span>' +
+            '<span class="compte">' + libelleCompte + '</span></div>';
+        }
+        return '<button type="button" class="ligne-continent" data-continent-toggle aria-expanded="false">' +
+          '<span class="nom">' + continent + '</span>' +
+          '<span class="ligne-continent-droite"><span class="compte">' + libelleCompte + '</span>' +
+          '<svg class="chevron-mini" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>' +
+          '</button>' +
+          '<div class="continent-corps" hidden>' + lignesPays + '</div>';
       }).join('');
     }
 
