@@ -318,8 +318,8 @@
     background: var(--panneau);
     border-radius: 0 0 26px 26px;
     text-align: center;
-    padding-bottom: 26px;
     position: relative;
+    overflow: visible;
   }
   [data-theme="sombre"] .profil-bandeau { background: linear-gradient(158deg, #4B1D78 0%, #34155F 45%, #230C40 100%); }
 
@@ -353,7 +353,7 @@
   }
   .profil-avatar:hover::after { background: rgba(42,17,69,.12); }
 
-  .profil-avatar-zone { position: relative; display: inline-block; }
+  .profil-avatar-zone { position: relative; display: inline-block; margin-bottom: -74px; }
 
   .profil-avatar-retirer {
     position: absolute;
@@ -381,7 +381,7 @@
     display: block;
     width: 100%;
     max-width: 260px;
-    margin: 0 auto;
+    margin: 56px auto 0;
     background: transparent;
     border: 0;
     border-bottom: 1.5px solid rgba(42,17,69,.18);
@@ -1636,7 +1636,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v80</span>
+        <span class="version" id="version">v81</span>
       </header>
 
       <div class="filtres">
@@ -1899,10 +1899,10 @@
       <button class="profil-avatar-retirer" id="profil-avatar-retirer" aria-label="Retirer la photo" title="Retirer la photo" hidden>×</button>
     </div>
     <input type="file" id="profil-photo-fichier" accept="image/*" hidden>
-    <input class="profil-pseudo" id="profil-pseudo" type="text" placeholder="Ton pseudo" maxlength="30" autocomplete="off">
   </div>
 
   <div class="volet-corps">
+    <input class="profil-pseudo" id="profil-pseudo" type="text" placeholder="Ton pseudo" maxlength="30" autocomplete="off">
     <div class="profil-stats" id="profil-stats"></div>
 
     <div class="profil-section-fixe">
