@@ -432,7 +432,6 @@
     font-weight: 700;
     font-size: 10.5px;
     color: var(--texte);
-    opacity: .6;
     margin-top: 3px;
   }
 
@@ -447,9 +446,12 @@
   .ligne-pays-profil .nom { flex: 1; font-family: var(--body); font-size: 14px; color: var(--texte); }
   .ligne-pays-profil .compte {
     font-family: var(--label);
-    font-weight: 600;
+    font-weight: 700;
     font-size: 12px;
     color: var(--accent);
+    background: var(--accent-doux);
+    padding: 4px 11px;
+    border-radius: 999px;
   }
   .profil-vide { color: var(--texte-doux); font-size: 13.5px; padding: 8px 4px; }
 
@@ -491,29 +493,29 @@
     padding: 0 10px 4px;
   }
   .ligne-categorie-entete span:first-child { flex: 1; }
-  .ligne-categorie-entete span { width: 44px; text-align: center; font-family: var(--label); font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: .02em; color: var(--texte-doux); }
+  .ligne-categorie-entete span { width: 54px; text-align: center; white-space: nowrap; font-family: var(--label); font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: .02em; color: var(--texte-doux); }
 
   .ligne-categorie-profil {
     display: flex;
     align-items: center;
     gap: 9px;
-    padding: 8px 10px;
-    border-radius: 12px;
+    padding: 9px 10px;
+    border-bottom: 1px solid var(--ligne);
   }
-  .ligne-categorie-profil:nth-child(odd) { background: var(--pastille); }
   .ligne-categorie-profil .point-icone { flex: none; display: flex; }
   .ligne-categorie-profil .nom { flex: 1; font-family: var(--body); font-size: 14px; color: var(--texte); }
   .ligne-categorie-profil .col {
-    width: 44px;
+    width: 54px;
     text-align: center;
     font-family: var(--label);
     font-weight: 700;
     font-size: 12px;
     padding: 4px 0;
     border-radius: 999px;
+    border: 1px solid transparent;
   }
   .ligne-categorie-profil .col.testees { background: var(--accent-doux); color: var(--accent); }
-  .ligne-categorie-profil .col.a-tester { background: var(--surface-2); color: var(--texte-doux); }
+  .ligne-categorie-profil .col.a-tester { background: var(--pastille); border: 1px dashed var(--ligne-fort); color: var(--texte-doux); }
 
   .ligne-departement {
     display: flex;
@@ -1751,7 +1753,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v97</span>
+        <span class="version" id="version">v98</span>
       </header>
 
       <div class="filtres">
@@ -2064,8 +2066,15 @@
         <div class="profil-sous-titre">Top 5 des départements testés</div>
         <div id="profil-departements"></div>
 
-        <div class="profil-sous-titre">Par année</div>
-        <div id="profil-annees"></div>
+        <div class="profil-mini-accordeon">
+          <button class="profil-mini-entete" id="mini-annees-bouton" aria-expanded="false">
+            <span>Par année</span>
+            <svg class="chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <div class="profil-mini-corps" id="mini-annees-corps" hidden>
+            <div id="profil-annees"></div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -2078,7 +2087,7 @@
         <div class="profil-barre-monde"><div class="profil-barre-monde-remplie" id="profil-barre-monde-remplie"></div></div>
         <div class="profil-barre-legende" id="profil-barre-legende"></div>
 
-        <div class="profil-sous-titre">Pays goûtés</div>
+        <div class="profil-sous-titre">Détail des pays</div>
         <div class="profil-pays-scroll" id="profil-pays"></div>
       </div>
     </div>
@@ -4135,23 +4144,23 @@
 
     /* Par année : la date qui compte est celle posée à la création de l'adresse
        (le premier élément de dates, rempli automatiquement dès qu'on met une
-       note — voir plus haut). Sans date, une adresse n'est simplement pas comptée. */
+       note — voir plus haut). Sans date, une adresse n'est simplement pas comptée.
+       La plage va de 2020 à l'année en cours — calculée dynamiquement, donc 2027
+       apparaîtra tout seul le moment venu, pas besoin d'y retoucher. */
     var comptesAnnees = {};
     lieux.forEach(function (l) {
       if (!l.dates || !l.dates.length || !l.dates[0]) return;
       var annee = l.dates[0].slice(0, 4);
       comptesAnnees[annee] = (comptesAnnees[annee] || 0) + 1;
     });
-    var annees = Object.keys(comptesAnnees).sort().reverse();
+    var anneeCourante = new Date().getFullYear();
+    var annees = [];
+    for (var an = anneeCourante; an >= 2020; an--) annees.push(String(an));
     var zoneAnnees = document.getElementById('profil-annees');
-    if (!annees.length) {
-      zoneAnnees.innerHTML = '<div class="profil-vide">Aucune adresse datée pour l\'instant.</div>';
-    } else {
-      zoneAnnees.innerHTML = annees.map(function (a) {
-        return '<div class="ligne-annee"><span class="nom">' + a + '</span>' +
-          '<span class="compte">' + comptesAnnees[a] + (comptesAnnees[a] > 1 ? ' adresses testées' : ' adresse testée') + '</span></div>';
-      }).join('');
-    }
+    zoneAnnees.innerHTML = annees.map(function (a) {
+      return '<div class="ligne-annee"><span class="nom">' + a + '</span>' +
+        '<span class="compte">' + (comptesAnnees[a] || 0) + '</span></div>';
+    }).join('');
 
     /* Tour du monde : pays goûtés (testés), sur la base des 194 pays connus de l'appli. */
     var comptesPays = {};
@@ -5646,6 +5655,7 @@
   brancherAccordeon('accordeon-stats-bouton', 'accordeon-stats-corps');
   brancherAccordeon('accordeon-pays-bouton', 'accordeon-pays-corps');
   brancherAccordeon('accordeon-regions-bouton', 'accordeon-regions-corps');
+  brancherAccordeon('mini-annees-bouton', 'mini-annees-corps');
   var minuterieProfilPseudo;
   document.getElementById('profil-pseudo').addEventListener('input', function (e) {
     var v = e.target.value;
