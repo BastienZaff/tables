@@ -317,6 +317,8 @@
   .profil-bandeau {
     background: var(--panneau);
     border-radius: 0 0 26px 26px;
+    border: 1.5px solid var(--accent-ligne);
+    border-top: 0;
     text-align: center;
     position: relative;
     overflow: visible;
@@ -381,7 +383,7 @@
     display: block;
     width: 100%;
     max-width: 260px;
-    margin: 27px auto 0;
+    margin: 45px auto 0;
     background: transparent;
     border: 0;
     border-bottom: 1.5px solid rgba(42,17,69,.18);
@@ -401,14 +403,11 @@
 
   .profil-stats {
     display: flex;
-    gap: 8px;
-    margin-bottom: 20px;
+    margin: 22px 0 0;
+    padding: 0 22px 26px;
   }
   .profil-stat {
     flex: 1;
-    background: var(--panneau);
-    border-radius: 16px;
-    padding: 15px 10px;
     text-align: center;
   }
   .profil-stat .nombre {
@@ -1283,11 +1282,35 @@
     touch-action: none;
   }
   .poignee:active { cursor: grabbing; }
-  .ligne-cat .rond {
-    width: 14px; height: 14px;
+  .ligne-cat .cat-icone-bouton {
+    width: 26px; height: 26px;
     border-radius: 50%;
     flex: none;
+    border: 0;
+    display: grid;
+    place-items: center;
+    padding: 0;
   }
+  .ligne-cat .cat-icone-bouton:hover { filter: brightness(.94); transform: scale(1.06); }
+  .cat-choix-icone {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px;
+    margin: -2px 0 8px;
+    background: var(--pastille);
+    border-radius: 14px;
+  }
+  .cat-choix-icone-item {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    display: grid;
+    place-items: center;
+    padding: 0;
+  }
+  .cat-choix-icone-item[aria-pressed="true"] { border-color: var(--texte); }
+  .cat-choix-icone-item:hover { filter: brightness(.94); }
   .ligne-cat .nom {
     flex: 1;
     font-family: var(--label);
@@ -1681,7 +1704,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v94</span>
+        <span class="version" id="version">v95</span>
       </header>
 
       <div class="filtres">
@@ -1947,12 +1970,11 @@
       <button class="profil-avatar-retirer" id="profil-avatar-retirer" aria-label="Retirer la photo" title="Retirer la photo" hidden>×</button>
     </div>
     <input type="file" id="profil-photo-fichier" accept="image/*" hidden>
+    <input class="profil-pseudo" id="profil-pseudo" type="text" placeholder="Ton pseudo" maxlength="30" autocomplete="off">
+    <div class="profil-stats" id="profil-stats"></div>
   </div>
 
   <div class="volet-corps">
-    <input class="profil-pseudo" id="profil-pseudo" type="text" placeholder="Ton pseudo" maxlength="30" autocomplete="off">
-    <div class="profil-stats" id="profil-stats"></div>
-
     <div class="profil-section-fixe">
       <div class="profil-section-titre"><img src="data:image/png;base64,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" alt="">Mes préférences</div>
 
@@ -2124,12 +2146,12 @@
                  '#E05C4B','#FF9A82','#D4457F','#6E2BB0','#A8459B','#5C7CE0'];
 
   var CATEGORIES = [
-    { id: 'restaurant',  nom: 'Restaurant',  couleur: '#C24DE8' },
-    { id: 'coffee',      nom: 'Coffee shop', couleur: '#7A4BD0' },
-    { id: 'fastfood',    nom: 'Fast food',   couleur: '#E7568F' },
-    { id: 'bar',         nom: 'Bar',         couleur: '#4B1D78' },
-    { id: 'boulangerie', nom: 'Boulangerie', couleur: '#B98CE8' },
-    { id: 'autre',       nom: 'Autre',       couleur: '#8A7F9B' }
+    { id: 'restaurant',  nom: 'Restaurant',  couleur: '#C24DE8', icone: 'restaurant' },
+    { id: 'coffee',      nom: 'Coffee shop', couleur: '#7A4BD0', icone: 'coffee' },
+    { id: 'fastfood',    nom: 'Fast food',   couleur: '#E7568F', icone: 'fastfood' },
+    { id: 'bar',         nom: 'Bar',         couleur: '#4B1D78', icone: 'bar' },
+    { id: 'boulangerie', nom: 'Boulangerie', couleur: '#B98CE8', icone: 'boulangerie' },
+    { id: 'autre',       nom: 'Autre',       couleur: '#8A7F9B', icone: '' }
   ];
 
   var lieux = [];
@@ -2696,7 +2718,7 @@
     var t = taille || 16;
     return '<svg width="' + t + '" height="' + t + '" viewBox="0 0 ' + t + ' ' + t + '" ' +
       'xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">' +
-      iconeCategorieSvg(c.couleur, c.id, 0, 0, t) + '</svg>';
+      iconeCategorieSvg(c.couleur, c.icone || c.id, 0, 0, t) + '</svg>';
   }
 
   /* Le pin est toujours blanc au centre ; seul le tour et l'icône portent la couleur
@@ -2739,10 +2761,18 @@
       poignee.addEventListener('pointerdown', function (e) { debutGlisse(e, ligne); });
       ligne.appendChild(poignee);
 
-      var rond = document.createElement('span');
-      rond.className = 'rond';
-      rond.style.background = c.couleur;
-      ligne.appendChild(rond);
+      var boutonIcone = document.createElement('button');
+      boutonIcone.type = 'button';
+      boutonIcone.className = 'cat-icone-bouton';
+      boutonIcone.style.background = c.couleur;
+      boutonIcone.setAttribute('aria-label', 'Changer l\'icône de ' + c.nom);
+      boutonIcone.title = 'Changer l\'icône';
+      boutonIcone.innerHTML = iconeCategorieMini({ couleur: '#FFFFFF', icone: c.icone || c.id }, 16);
+      boutonIcone.addEventListener('click', function (e) {
+        e.stopPropagation();
+        ouvrirChoixIcone(i, ligne);
+      });
+      ligne.appendChild(boutonIcone);
 
       var nom = document.createElement('span');
       nom.className = 'nom';
@@ -2766,6 +2796,48 @@
       zone.appendChild(ligne);
     });
   }
+
+  /* Les icônes disponibles pour habiller une catégorie — plusieurs catégories
+     peuvent tout à fait partager la même icône, seule la couleur les distingue
+     alors. */
+  var ICONES_DISPONIBLES = ['restaurant', 'coffee', 'fastfood', 'bar', 'boulangerie'];
+
+  function ouvrirChoixIcone(index, ligne) {
+    fermerChoixIcone();
+    var c = CATEGORIES[index];
+    var panneau = document.createElement('div');
+    panneau.className = 'cat-choix-icone';
+    panneau.id = 'cat-choix-icone';
+
+    ICONES_DISPONIBLES.forEach(function (cle) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'cat-choix-icone-item';
+      b.style.background = c.couleur;
+      b.setAttribute('aria-pressed', (c.icone || c.id) === cle ? 'true' : 'false');
+      b.innerHTML = iconeCategorieMini({ couleur: '#FFFFFF', icone: cle }, 20);
+      b.addEventListener('click', function (e) {
+        e.stopPropagation();
+        CATEGORIES[index].icone = cle;
+        enregistrerCats();
+        fermerChoixIcone();
+        dessinerCats();
+        dessinerPuces();
+      });
+      panneau.appendChild(b);
+    });
+
+    ligne.insertAdjacentElement('afterend', panneau);
+  }
+
+  function fermerChoixIcone() {
+    var ancien = document.getElementById('cat-choix-icone');
+    if (ancien) ancien.remove();
+  }
+
+  document.addEventListener('click', function (e) {
+    if (!e.target.closest('.cat-choix-icone') && !e.target.closest('.cat-icone-bouton')) fermerChoixIcone();
+  });
 
   function debutGlisse(e, ligne) {
     e.preventDefault();
@@ -2862,7 +2934,8 @@
     CATEGORIES.push({
       id: 'c' + Date.now().toString(36),
       nom: nom,
-      couleur: teinteChoisie
+      couleur: teinteChoisie,
+      icone: ''
     });
     champ.value = '';
     enregistrerCats();
@@ -3168,7 +3241,7 @@
 
       var icone = L.divIcon({
         className: '',
-        html: formeEpingle(c.couleur, teste, c.id),
+        html: formeEpingle(c.couleur, teste, c.icone || c.id),
         iconSize: [34, 42],
         iconAnchor: [17, 42],
         popupAnchor: [0, -36]
@@ -3216,7 +3289,7 @@
 
     var h = '<div class="bulle-entete">' +
             '<svg class="bulle-puce" width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">' +
-            iconeCategorieSvg(c.couleur, c.id, 0, 0, 20) +
+            iconeCategorieSvg(c.couleur, c.icone || c.id, 0, 0, 20) +
             '</svg>' +
             '<span class="bulle-nom">' + echapper(l.nom) + '</span></div>';
     if (l.adresse) h += '<div class="bulle-adr">' + echapper(formaterAdresseAffichage(l.adresse)) + '</div>';
@@ -3323,7 +3396,7 @@
     var c = categorie((l.categories || [])[0]);
     var h = '<div class="bulle-entete">' +
             '<svg class="bulle-puce" width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">' +
-            iconeCategorieSvg(c.couleur, c.id, 0, 0, 20) +
+            iconeCategorieSvg(c.couleur, c.icone || c.id, 0, 0, 20) +
             '</svg>' +
             '<span class="bulle-nom">' + echapper(l.nom) + '</span></div>';
     if (l.adresse) h += '<div class="bulle-adr">' + echapper(formaterAdresseAffichage(l.adresse)) + '</div>';
@@ -3616,10 +3689,10 @@
       if (actif) b.style.background = teinte;
 
       if (c.id !== 'tout') {
-        var pt = document.createElement('span');
-        pt.className = 'point';
-        pt.style.background = teinte;
-        b.appendChild(pt);
+        var icone = document.createElement('span');
+        icone.className = 'puce-icone';
+        icone.innerHTML = iconeCategorieMini({ couleur: actif ? '#FFFFFF' : teinte, icone: c.icone || c.id }, 16);
+        b.appendChild(icone);
       }
       b.appendChild(document.createTextNode(c.nom));
       b.addEventListener('click', function () {
@@ -4824,7 +4897,7 @@
 
       var icone = document.createElement('span');
       icone.className = 'puce-icone';
-      icone.innerHTML = iconeCategorieMini({ couleur: actif ? '#FFFFFF' : c.couleur, id: c.id }, 16);
+      icone.innerHTML = iconeCategorieMini({ couleur: actif ? '#FFFFFF' : c.couleur, icone: c.icone || c.id }, 16);
       b.appendChild(icone);
       b.appendChild(document.createTextNode(c.nom));
 
@@ -5723,6 +5796,7 @@
       var d = JSON.parse(cc);
       if (Array.isArray(d) && d.length) CATEGORIES = d;
     }
+    CATEGORIES.forEach(function (c) { if (typeof c.icone === 'undefined') c.icone = c.id; });
     chargerProfil();
   } catch (e) { villes = []; }
 
