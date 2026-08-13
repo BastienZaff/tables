@@ -406,7 +406,7 @@
   }
   .profil-stat {
     flex: 1;
-    background: var(--pastille);
+    background: var(--panneau);
     border-radius: 16px;
     padding: 15px 10px;
     text-align: center;
@@ -733,6 +733,8 @@
   .puce:hover { filter: brightness(.96); }
   .puce:active { transform: scale(.96); }
   .puce .point { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+  .puce .puce-icone { width: 16px; height: 16px; flex: none; display: flex; }
+  .puce .puce-icone svg { display: block; }
   .puce[aria-pressed="true"] { color: #FFFFFF; font-weight: 600; }
   .puce[aria-pressed="true"] .point { background: rgba(255,255,255,.85) !important; }
 
@@ -1326,6 +1328,16 @@
   }
   .puce.gerer:hover { color: var(--accent); border-color: var(--accent-ligne); }
 
+  .separateur-groupe { border: 0; border-top: 1px solid var(--ligne); margin: 4px 0 18px; }
+
+  .puce.gerer-icone {
+    background: transparent;
+    border: 1px dashed var(--ligne-fort);
+    color: var(--texte-doux);
+    padding: 7px 10px;
+  }
+  .puce.gerer-icone:hover { color: var(--accent); border-color: var(--accent-ligne); }
+
   .leaflet-popup-content-wrapper {
     background: linear-gradient(158deg, #FDEFFB 0%, #F4ECFD 42%, #E6EBFE 100%);
     color: var(--texte);
@@ -1637,6 +1649,7 @@
       box-shadow: var(--ombre);
     }
     .onglet-profil-mobile:active { transform: scale(.94); }
+    [data-theme="sombre"] .onglet-profil-mobile { color: #FFFFFF; }
 
     .liste { padding-bottom: 120px; }
     .flottant { bottom: calc(78px + env(safe-area-inset-bottom)); }
@@ -1668,12 +1681,11 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v92</span>
+        <span class="version" id="version">v94</span>
       </header>
 
       <div class="filtres">
         <div class="bascule" id="bascule-etat"></div>
-        <input class="champ-recherche" id="filtre-texte" type="search" placeholder="Chercher un nom, un mot, un tag…" autocomplete="off">
         <div class="puces" id="puces-categories"></div>
         <div class="villes" id="villes"></div>
       </div>
@@ -1683,6 +1695,7 @@
       <div class="poignee-feuille" id="poignee-feuille" aria-label="Agrandir la liste"><span></span></div>
       <div class="feuille-entete" id="feuille-entete">
         <span id="feuille-titre"></span>
+        <input class="champ-recherche" id="filtre-texte" type="search" placeholder="Chercher un nom, un mot, un tag…" autocomplete="off">
         <div class="groupe-tri" id="groupe-tri">
           <button class="puce ouvrir-tri" type="button" id="btn-tri">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><circle cx="9" cy="6" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="15" cy="12" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="7" cy="18" r="2" fill="currentColor" stroke="none"/></svg>
@@ -1805,12 +1818,14 @@
       <div class="aide" id="etat-point">Aucun point posé sur la carte.</div>
     </div>
 
+    <hr class="separateur-groupe">
     <div class="groupe">
       <span class="etiq">Catégories</span>
       <div class="puces" id="champ-categorie"></div>
       <div class="aide">Touche-en plusieurs si le lieu en mérite plus d'une, par exemple Restaurant et Fast food.</div>
     </div>
 
+    <hr class="separateur-groupe">
     <div class="groupe">
       <span class="etiq">Ma note</span>
       <div class="note-choix" id="note-choix"></div>
@@ -1833,6 +1848,7 @@
       <div class="aide">La cuisine d'origine du lieu — utile pour repérer d'un coup d'œil ce que tu as déjà goûté.</div>
     </div>
 
+    <hr class="separateur-groupe">
     <div class="groupe">
       <label class="etiq" for="champ-commentaire">Mon commentaire</label>
       <textarea class="zone" id="champ-commentaire" placeholder="Le tartare est la raison de venir. Réserver au moins dix jours avant."></textarea>
@@ -4806,10 +4822,10 @@
       b.setAttribute('aria-pressed', actif ? 'true' : 'false');
       if (actif) b.style.background = c.couleur;
 
-      var pt = document.createElement('span');
-      pt.className = 'point';
-      pt.style.background = c.couleur;
-      b.appendChild(pt);
+      var icone = document.createElement('span');
+      icone.className = 'puce-icone';
+      icone.innerHTML = iconeCategorieMini({ couleur: actif ? '#FFFFFF' : c.couleur, id: c.id }, 16);
+      b.appendChild(icone);
       b.appendChild(document.createTextNode(c.nom));
 
       b.addEventListener('click', function () {
@@ -4822,6 +4838,15 @@
       });
       zoneCats.appendChild(b);
     });
+
+    var gererForm = document.createElement('button');
+    gererForm.type = 'button';
+    gererForm.className = 'puce gerer-icone';
+    gererForm.setAttribute('aria-label', 'Gérer les catégories');
+    gererForm.title = 'Gérer les catégories';
+    gererForm.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+    gererForm.addEventListener('click', ouvrirCats);
+    zoneCats.appendChild(gererForm);
 
     var zone = document.getElementById('note-choix');
     zone.innerHTML = '';
@@ -4901,7 +4926,7 @@
     document.getElementById('etat-point').textContent =
       typeof brouillon.lat === 'number'
         ? ''
-        : 'Aucun point posé : choisis un lieu dans la liste, ou utilise « Enregistrer manuellement ».';
+        : 'Choisis un lieu dans la liste, ou utilise « Enregistrer manuellement ».';
   }
 
   function lireVolet() {
