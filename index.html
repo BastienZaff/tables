@@ -324,9 +324,9 @@
   [data-theme="sombre"] .profil-bandeau { background: linear-gradient(158deg, #4B1D78 0%, #34155F 45%, #230C40 100%); }
 
   .profil-bandeau .volet-entete { background: transparent; border-bottom: 0; text-align: left; }
-  .profil-bandeau .volet-titre { color: #FFFFFF; font-size: 22px; }
-  .profil-bandeau .fermer { color: rgba(255,255,255,.85); }
-  .profil-bandeau .fermer:hover { color: #FFFFFF; }
+  .profil-bandeau .volet-titre { color: var(--texte); font-size: 22px; line-height: 1; }
+  .profil-bandeau .fermer { color: var(--texte); font-size: 22px; line-height: 1; padding: 0; display: flex; align-items: center; }
+  .profil-bandeau .fermer:hover { opacity: .7; }
 
   .profil-avatar {
     width: 120px; height: 120px;
@@ -394,6 +394,8 @@
   }
   .profil-pseudo::placeholder { color: var(--texte-doux); opacity: .7; font-weight: 500; }
   .profil-pseudo:focus { outline: none; border-bottom-color: var(--accent); }
+  [data-theme="sombre"] .profil-bandeau .volet-titre,
+  [data-theme="sombre"] .profil-bandeau .fermer { color: #FFFFFF; }
   [data-theme="sombre"] .profil-pseudo { color: #FFFFFF; border-bottom-color: rgba(255,255,255,.3); }
   [data-theme="sombre"] .profil-pseudo::placeholder { color: rgba(255,255,255,.6); }
 
@@ -1666,7 +1668,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v91</span>
+        <span class="version" id="version">v92</span>
       </header>
 
       <div class="filtres">
