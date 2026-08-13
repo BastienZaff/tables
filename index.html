@@ -314,11 +314,19 @@
   }
   .puce-pays .croix:hover { background: var(--pastille-forte); color: var(--danger); }
 
+  #volet-profil {
+    display: block;
+    overflow-y: auto;
+  }
+  #volet-profil .volet-corps {
+    flex: none;
+    overflow-y: visible;
+    padding-bottom: 40px;
+  }
+
   .profil-bandeau {
     background: var(--panneau);
     border-radius: 0 0 26px 26px;
-    border: 1.5px solid var(--accent-ligne);
-    border-top: 0;
     text-align: center;
     position: relative;
     overflow: visible;
@@ -421,8 +429,10 @@
   .profil-stat .libelle {
     display: block;
     font-family: var(--label);
+    font-weight: 700;
     font-size: 10.5px;
-    color: var(--texte-doux);
+    color: var(--texte);
+    opacity: .6;
     margin-top: 3px;
   }
 
@@ -481,7 +491,7 @@
     padding: 0 10px 4px;
   }
   .ligne-categorie-entete span:first-child { flex: 1; }
-  .ligne-categorie-entete span { width: 52px; text-align: right; font-family: var(--label); font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: .02em; color: var(--texte-doux); }
+  .ligne-categorie-entete span { width: 44px; text-align: center; font-family: var(--label); font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: .02em; color: var(--texte-doux); }
 
   .ligne-categorie-profil {
     display: flex;
@@ -493,9 +503,17 @@
   .ligne-categorie-profil:nth-child(odd) { background: var(--pastille); }
   .ligne-categorie-profil .point-icone { flex: none; display: flex; }
   .ligne-categorie-profil .nom { flex: 1; font-family: var(--body); font-size: 14px; color: var(--texte); }
-  .ligne-categorie-profil .col { width: 52px; text-align: right; font-family: var(--label); font-weight: 600; font-size: 13px; }
-  .ligne-categorie-profil .col.testees { color: var(--accent); }
-  .ligne-categorie-profil .col.a-tester { color: var(--texte-doux); }
+  .ligne-categorie-profil .col {
+    width: 44px;
+    text-align: center;
+    font-family: var(--label);
+    font-weight: 700;
+    font-size: 12px;
+    padding: 4px 0;
+    border-radius: 999px;
+  }
+  .ligne-categorie-profil .col.testees { background: var(--accent-doux); color: var(--accent); }
+  .ligne-categorie-profil .col.a-tester { background: var(--surface-2); color: var(--texte-doux); }
 
   .ligne-departement {
     display: flex;
@@ -511,7 +529,36 @@
     display: grid; place-items: center;
   }
   .ligne-departement .nom { flex: 1; font-family: var(--body); font-size: 14px; color: var(--texte); }
-  .ligne-departement .compte { font-family: var(--label); font-weight: 600; font-size: 11.5px; color: var(--texte-doux); text-align: right; }
+  .ligne-departement .compte {
+    font-family: var(--label);
+    font-weight: 700;
+    font-size: 12px;
+    color: var(--accent);
+    background: var(--accent-doux);
+    padding: 4px 11px;
+    border-radius: 999px;
+    flex: none;
+  }
+
+  .ligne-annee {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px;
+    border-radius: 12px;
+  }
+  .ligne-annee:nth-child(odd) { background: var(--pastille); }
+  .ligne-annee .nom { font-family: var(--display); font-weight: 700; font-size: 14px; color: var(--texte); }
+  .ligne-annee .compte {
+    font-family: var(--label);
+    font-weight: 700;
+    font-size: 12px;
+    color: var(--accent);
+    background: var(--accent-doux);
+    padding: 4px 11px;
+    border-radius: 999px;
+    flex: none;
+  }
 
   .profil-barre-monde {
     height: 16px;
@@ -1704,7 +1751,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v95</span>
+        <span class="version" id="version">v97</span>
       </header>
 
       <div class="filtres">
@@ -1993,6 +2040,13 @@
         <input class="saisie" id="champ-recherche-top-pays" type="text" placeholder="Chercher un pays à ajouter…" autocomplete="off">
         <div class="propositions" id="propositions-top-pays"></div>
       </div>
+
+      <div class="profil-sous-titre" id="titre-plats">Mes plats préférés</div>
+      <div id="profil-plats"></div>
+      <button type="button" class="reco-ajouter" id="bouton-ajouter-plat">+ Ajouter un plat</button>
+      <div class="zone-auto" id="zone-ajout-plat" hidden>
+        <input class="saisie" id="champ-plat" type="text" placeholder="Le tartare de chez Nan House…" autocomplete="off" maxlength="60">
+      </div>
     </div>
 
     <div class="profil-accordeon">
@@ -2009,6 +2063,9 @@
 
         <div class="profil-sous-titre">Top 5 des départements testés</div>
         <div id="profil-departements"></div>
+
+        <div class="profil-sous-titre">Par année</div>
+        <div id="profil-annees"></div>
       </div>
     </div>
 
@@ -3748,7 +3805,7 @@
   }
 
   var CLE_PROFIL = 'tables:profil';
-  var monProfil = { pseudo: '', photo: '', recommandations: [], topPays: [] };
+  var monProfil = { pseudo: '', photo: '', recommandations: [], topPays: [], plats: [] };
 
   function chargerProfil() {
     try {
@@ -3759,6 +3816,7 @@
        On repasse en tableau compact, sans emplacement vide, plafonné à 3. */
     monProfil.recommandations = (Array.isArray(monProfil.recommandations) ? monProfil.recommandations : []).filter(Boolean).slice(0, 3);
     monProfil.topPays = (Array.isArray(monProfil.topPays) ? monProfil.topPays : []).filter(Boolean).slice(0, 3);
+    monProfil.plats = (Array.isArray(monProfil.plats) ? monProfil.plats : []).filter(Boolean).slice(0, 3);
   }
 
   function enregistrerProfil() {
@@ -3964,9 +4022,59 @@
     });
   }
 
+  /* Mes plats préférés (facultatif, jusqu'à 3) : contrairement aux adresses et
+     aux pays, il n'y a pas de liste existante dans laquelle piocher — on tape
+     juste le nom du plat, en texte libre. */
+  function libelleMesPlats(n) {
+    if (n === 1) return 'Mon plat préféré';
+    if (n > 1) return 'Mes ' + n + ' plats préférés';
+    return 'Mes plats préférés';
+  }
+
+  function dessinerPlats() {
+    var zone = document.getElementById('profil-plats');
+    zone.innerHTML = '';
+
+    document.getElementById('titre-plats').textContent = libelleMesPlats(monProfil.plats.length);
+
+    monProfil.plats.forEach(function (plat, i) {
+      var ligne = document.createElement('div');
+      ligne.className = 'ligne-reco';
+      ligne.innerHTML = '<span class="rang">' + (i + 1) + '</span>' +
+        '<span class="detail"><span class="nom">' + echapper(plat) + '</span></span>' +
+        '<button class="retirer" aria-label="Retirer">×</button>';
+      ligne.querySelector('.retirer').addEventListener('click', function () {
+        monProfil.plats.splice(i, 1);
+        enregistrerProfil();
+        dessinerPlats();
+      });
+      zone.appendChild(ligne);
+    });
+
+    var complet = monProfil.plats.length >= 3;
+    document.getElementById('bouton-ajouter-plat').hidden = complet;
+    if (complet) {
+      document.getElementById('zone-ajout-plat').hidden = true;
+      document.getElementById('champ-plat').value = '';
+    }
+  }
+
+  function validerAjoutPlat() {
+    var champ = document.getElementById('champ-plat');
+    var val = champ.value.trim();
+    if (!val || monProfil.plats.length >= 3) return;
+    monProfil.plats.push(val);
+    enregistrerProfil();
+    champ.value = '';
+    document.getElementById('zone-ajout-plat').hidden = true;
+    document.getElementById('bouton-ajouter-plat').hidden = monProfil.plats.length >= 3;
+    dessinerPlats();
+  }
+
   function dessinerProfil() {
     dessinerRecommandations();
     dessinerTopPays();
+    dessinerPlats();
 
     var imgAvatar = document.getElementById('profil-avatar-img');
     var defautAvatar = document.getElementById('profil-avatar-defaut');
@@ -4021,7 +4129,27 @@
       zoneDep.innerHTML = deps.map(function (dep, i) {
         return '<div class="ligne-departement"><span class="rang">' + (i + 1) + '</span>' +
           '<span class="nom">' + echapper(nomDepartement(dep)) + ' (' + echapper(dep) + ')</span>' +
-          '<span class="compte">' + comptesDep[dep] + (comptesDep[dep] > 1 ? ' adresses testées' : ' adresse testée') + '</span></div>';
+          '<span class="compte">' + comptesDep[dep] + '</span></div>';
+      }).join('');
+    }
+
+    /* Par année : la date qui compte est celle posée à la création de l'adresse
+       (le premier élément de dates, rempli automatiquement dès qu'on met une
+       note — voir plus haut). Sans date, une adresse n'est simplement pas comptée. */
+    var comptesAnnees = {};
+    lieux.forEach(function (l) {
+      if (!l.dates || !l.dates.length || !l.dates[0]) return;
+      var annee = l.dates[0].slice(0, 4);
+      comptesAnnees[annee] = (comptesAnnees[annee] || 0) + 1;
+    });
+    var annees = Object.keys(comptesAnnees).sort().reverse();
+    var zoneAnnees = document.getElementById('profil-annees');
+    if (!annees.length) {
+      zoneAnnees.innerHTML = '<div class="profil-vide">Aucune adresse datée pour l\'instant.</div>';
+    } else {
+      zoneAnnees.innerHTML = annees.map(function (a) {
+        return '<div class="ligne-annee"><span class="nom">' + a + '</span>' +
+          '<span class="compte">' + comptesAnnees[a] + (comptesAnnees[a] > 1 ? ' adresses testées' : ' adresse testée') + '</span></div>';
       }).join('');
     }
 
@@ -4068,7 +4196,8 @@
 
         if (!codesContinent.length) {
           return '<div class="ligne-continent ligne-continent-vide"><span class="nom">' + continent + '</span>' +
-            '<span class="compte">' + libelleCompte + '</span></div>';
+            '<span class="ligne-continent-droite"><span class="compte">' + libelleCompte + '</span>' +
+            '<svg class="chevron-mini" width="13" height="13" viewBox="0 0 24 24" style="visibility:hidden"></svg></span></div>';
         }
         return '<button type="button" class="ligne-continent" data-continent-toggle aria-expanded="false">' +
           '<span class="nom">' + continent + '</span>' +
@@ -5560,6 +5689,25 @@
         document.getElementById('propositions-top-pays').innerHTML = '';
         document.getElementById('zone-recherche-top-pays').hidden = true;
         if (monProfil.topPays.length < 3) document.getElementById('bouton-ajouter-top-pays').hidden = false;
+      }
+    }, 180);
+  });
+
+  document.getElementById('bouton-ajouter-plat').addEventListener('click', function () {
+    document.getElementById('bouton-ajouter-plat').hidden = true;
+    document.getElementById('zone-ajout-plat').hidden = false;
+    document.getElementById('champ-plat').focus();
+  });
+  document.getElementById('champ-plat').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); validerAjoutPlat(); }
+  });
+  document.getElementById('champ-plat').addEventListener('blur', function () {
+    setTimeout(function () {
+      if (!document.getElementById('champ-plat').value.trim()) {
+        document.getElementById('zone-ajout-plat').hidden = true;
+        if (monProfil.plats.length < 3) document.getElementById('bouton-ajouter-plat').hidden = false;
+      } else {
+        validerAjoutPlat();
       }
     }, 180);
   });
