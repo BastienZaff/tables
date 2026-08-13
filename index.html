@@ -1633,23 +1633,32 @@
     top: 50%;
     transform: translateY(-50%);
     z-index: 900;
-    width: 40px;
-    height: 64px;
+    width: 42px;
+    height: 130px;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 0;
     border: 0;
     border-radius: 999px 0 0 999px;
-    background: var(--surface);
-    color: var(--accent);
-    box-shadow: 0 4px 16px rgba(42,17,69,.22);
+    background: linear-gradient(120deg, #6E2BB0 0%, #4B1D78 100%);
+    box-shadow: 0 4px 16px rgba(42,17,69,.3);
     transition: transform .16s;
     overflow: hidden;
   }
-  .languette-profil svg { position: absolute; top: 50%; right: 0; transform: translate(50%, -50%); width: 48px; height: 48px; }
-  .languette-profil:hover { filter: brightness(.97); }
-  .languette-profil:active { transform: translateY(-50%) scale(.94); }
+  .languette-profil-texte {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: #FFFFFF;
+    white-space: nowrap;
+  }
+  .languette-profil:hover { filter: brightness(1.06); }
+  .languette-profil:active { transform: translateY(-50%) scale(.96); }
 
   @media (max-width: 860px) {
     .languette-profil { display: none; }
@@ -1756,7 +1765,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v100</span>
+        <span class="version" id="version">v101</span>
       </header>
 
       <div class="filtres">
@@ -1826,7 +1835,7 @@
   </button>
 
   <button class="languette-profil" id="languette-profil" aria-label="Ouvrir mon profil">
-    <svg width="34" height="34" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0z"/></svg>
+    <span class="languette-profil-texte">Mon profil</span>
   </button>
 
   <nav class="onglets">
