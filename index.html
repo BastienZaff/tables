@@ -1641,11 +1641,12 @@
     padding: 0;
     border: 0;
     border-radius: 999px 0 0 999px;
-    background: linear-gradient(120deg, #6E2BB0 0%, #4B1D78 100%);
-    box-shadow: 0 4px 16px rgba(42,17,69,.3);
+    background: var(--panneau);
+    box-shadow: 0 4px 16px rgba(42,17,69,.22);
     transition: transform .16s;
     overflow: hidden;
   }
+  [data-theme="sombre"] .languette-profil { background: linear-gradient(158deg, #4B1D78 0%, #34155F 45%, #230C40 100%); }
   .languette-profil-texte {
     writing-mode: vertical-rl;
     transform: rotate(180deg);
@@ -1654,7 +1655,7 @@
     font-size: 14px;
     letter-spacing: .04em;
     text-transform: uppercase;
-    color: #FFFFFF;
+    color: var(--texte);
     white-space: nowrap;
   }
   .languette-profil:hover { filter: brightness(1.06); }
@@ -1765,7 +1766,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v101</span>
+        <span class="version" id="version">v102</span>
       </header>
 
       <div class="filtres">
