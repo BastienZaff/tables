@@ -1776,7 +1776,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v118</span>
+        <span class="version" id="version">v119</span>
       </header>
 
       <div class="filtres">
@@ -2858,7 +2858,7 @@
     if (!paire) return '<circle cx="' + (x + taille / 2) + '" cy="' + (y + taille / 2) + '" r="' + (taille / 4) + '" fill="' + couleur + '"/>';
     var idFond = 'colore-fond-' + (compteurFiltresEpingle++);
     var idContour = 'colore-contour-' + (compteurFiltresEpingle++);
-    var teinteClaire = melangerBlanc(couleur, 0.42);
+    var teinteClaire = melangerBlanc(couleur, 0.58);
     return '<defs>' +
       '<filter id="' + idFond + '" x="-30%" y="-30%" width="160%" height="160%">' +
       '<feFlood flood-color="' + teinteClaire + '"/><feComposite in2="SourceAlpha" operator="in"/>' +
