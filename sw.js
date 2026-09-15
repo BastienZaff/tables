@@ -1,7 +1,7 @@
 /* Dévoreur Explorer — fonctionnement hors connexion.
    Change le numéro de version ci-dessous après chaque modification. */
 
-var VERSION = 'tables-v115';
+var VERSION = 'tables-v117';
 
 var COQUILLE = [
   './',
@@ -14,6 +14,9 @@ var COQUILLE = [
   './icone-180.png',
   'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css',
   'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js',
+  'https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css',
+  'https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js',
+  'https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.20/leaflet-maplibre-gl.js',
   'https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;500;600;700&family=Nunito:wght@400;600;700&display=swap'
 ];
 
@@ -65,7 +68,7 @@ self.addEventListener('fetch', function (e) {
     return;
   }
 
-  if (url.indexOf('basemaps.cartocdn.com') !== -1 || url.indexOf('arcgisonline.com') !== -1 || url.indexOf('flagcdn.com') !== -1) {
+  if (url.indexOf('basemaps.cartocdn.com') !== -1 || url.indexOf('arcgisonline.com') !== -1 || url.indexOf('flagcdn.com') !== -1 || url.indexOf('openfreemap.org') !== -1) {
     e.respondWith(
       caches.match(e.request).then(function (r) {
         return r || fetch(e.request).then(function (reponse) {
