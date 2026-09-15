@@ -1769,7 +1769,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v113</span>
+        <span class="version" id="version">v114</span>
       </header>
 
       <div class="filtres">
@@ -2199,14 +2199,18 @@
   var FONDS = {
     voyager: {
       nom: 'Voyager',
-      url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-      attribution: '&copy; OpenStreetMap, &copy; CARTO'
+      url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      subdomains: 'abc',
+      attribution: '&copy; OpenStreetMap contributors'
     },
     epure: {
       nom: 'Épuré',
-      clair: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-      sombre: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-      attribution: '&copy; OpenStreetMap, &copy; CARTO'
+      clair: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      sombre: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      subdomains: 'abc',
+      filtreClair: 'grayscale(0.4) brightness(1.08) contrast(0.92)',
+      filtreSombre: 'invert(92%) hue-rotate(180deg) brightness(0.95) contrast(0.9) grayscale(0.15)',
+      attribution: '&copy; OpenStreetMap contributors'
     },
     satellite: {
       nom: 'Satellite',
@@ -3336,11 +3340,15 @@
     if (coucheFond) carte.removeLayer(coucheFond);
     coucheFond = L.tileLayer(url, {
       maxZoom: 20,
-      subdomains: 'abcd',
+      subdomains: def.subdomains || 'abcd',
       detectRetina: true,
-      attribution: def.attribution || '&copy; OpenStreetMap, &copy; CARTO'
+      attribution: def.attribution || '&copy; OpenStreetMap contributors'
     }).addTo(carte);
     coucheFond.setZIndex(0);
+
+    var filtre = def.url ? '' : (theme === 'sombre' ? (def.filtreSombre || '') : (def.filtreClair || ''));
+    var paneFond = carte.getPane('tilePane');
+    if (paneFond) paneFond.style.filter = filtre;
   }
 
   function appliquerTheme() {
