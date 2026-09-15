@@ -1769,7 +1769,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v114</span>
+        <span class="version" id="version">v115</span>
       </header>
 
       <div class="filtres">
@@ -2199,18 +2199,15 @@
   var FONDS = {
     voyager: {
       nom: 'Voyager',
-      url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-      subdomains: 'abc',
-      attribution: '&copy; OpenStreetMap contributors'
+      url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+      attribution: '&copy; Esri'
     },
     epure: {
       nom: 'Épuré',
-      clair: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-      sombre: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-      subdomains: 'abc',
-      filtreClair: 'grayscale(0.4) brightness(1.08) contrast(0.92)',
-      filtreSombre: 'invert(92%) hue-rotate(180deg) brightness(0.95) contrast(0.9) grayscale(0.15)',
-      attribution: '&copy; OpenStreetMap contributors'
+      clair: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+      sombre: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+      maxNativeZoom: 16,
+      attribution: '&copy; Esri'
     },
     satellite: {
       nom: 'Satellite',
@@ -3339,16 +3336,12 @@
 
     if (coucheFond) carte.removeLayer(coucheFond);
     coucheFond = L.tileLayer(url, {
-      maxZoom: 20,
-      subdomains: def.subdomains || 'abcd',
+      maxZoom: 19,
+      maxNativeZoom: def.maxNativeZoom || 19,
       detectRetina: true,
-      attribution: def.attribution || '&copy; OpenStreetMap contributors'
+      attribution: def.attribution || '&copy; Esri'
     }).addTo(carte);
     coucheFond.setZIndex(0);
-
-    var filtre = def.url ? '' : (theme === 'sombre' ? (def.filtreSombre || '') : (def.filtreClair || ''));
-    var paneFond = carte.getPane('tilePane');
-    if (paneFond) paneFond.style.filter = filtre;
   }
 
   function appliquerTheme() {
