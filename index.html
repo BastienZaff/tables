@@ -388,17 +388,17 @@
   .profil-avatar-retirer:hover { filter: brightness(1.08); }
   .profil-avatar-retirer[hidden] { display: none; }
 
+  .volet-entete-actions { display: flex; align-items: center; gap: 8px; }
+
   .profil-notifs {
-    position: absolute;
-    top: -8px; right: -8px;
+    position: relative;
     width: 34px; height: 34px;
     border-radius: 50%;
-    border: 2px solid #FFFFFF;
+    border: 1.5px solid var(--ligne);
     background: var(--surface);
     color: var(--accent);
     display: grid;
     place-items: center;
-    box-shadow: 0 3px 8px rgba(42,17,69,.25);
     cursor: pointer;
   }
   .profil-notifs:hover { filter: brightness(.97); }
@@ -421,6 +421,45 @@
   .notif-item { padding: 4px 0; }
   .notif-texte { font-family: var(--body); font-size: 13.5px; color: var(--texte); margin-bottom: 8px; }
   .notif-texte strong { font-family: var(--label); font-weight: 700; }
+
+  .notif-liste { display: flex; flex-direction: column; }
+  .notif-ligne {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 4px;
+    border: none;
+    border-bottom: 1px solid var(--ligne);
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+    font: inherit;
+  }
+  .notif-liste .notif-ligne:last-child { border-bottom: none; }
+  .notif-ligne:hover { background: var(--survol); }
+  .notif-avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    flex: none;
+    display: grid;
+    place-items: center;
+    color: #FFFFFF;
+    font-family: var(--label);
+    font-weight: 700;
+    font-size: 14px;
+  }
+  .notif-corps { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
+  .notif-ligne-titre { font-family: var(--label); font-weight: 700; font-size: 13.5px; color: var(--texte); }
+  .notif-ligne-texte {
+    font-family: var(--body); font-size: 12.5px; color: var(--texte-doux);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .notif-point { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex: none; }
+
+  .bulle-ami-lien { color: var(--accent); font-weight: 600; text-decoration: none; }
+  .bulle-ami-lien:hover { text-decoration: underline; }
+  .bulle-ami-manuel { color: var(--texte-doux); }
 
   .profil-pseudo {
     display: block;
@@ -1865,7 +1904,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v122</span>
+        <span class="version" id="version">v123</span>
       </header>
 
       <div class="filtres">
@@ -2132,7 +2171,13 @@
   <div class="profil-bandeau">
     <div class="volet-entete">
       <span class="volet-titre">Mon profil</span>
-      <button class="fermer" id="profil-fermer" aria-label="Fermer">×</button>
+      <div class="volet-entete-actions">
+        <button class="profil-notifs" id="profil-notifs-bouton" aria-label="Notifications" title="Notifications">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 4 1.5 5.5 2 6.5H4c.5-1 2-2.5 2-6.5z"/><path d="M10 18a2 2 0 0 0 4 0"/></svg>
+          <span class="profil-notifs-badge" id="profil-notifs-badge" hidden>0</span>
+        </button>
+        <button class="fermer" id="profil-fermer" aria-label="Fermer">×</button>
+      </div>
     </div>
 
     <div class="profil-avatar-zone">
@@ -2141,10 +2186,6 @@
         <svg id="profil-avatar-defaut" width="54" height="54" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0z"/></svg>
       </button>
       <button class="profil-avatar-retirer" id="profil-avatar-retirer" aria-label="Retirer la photo" title="Retirer la photo" hidden>×</button>
-      <button class="profil-notifs" id="profil-notifs-bouton" aria-label="Notifications" title="Notifications">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 4 1.5 5.5 2 6.5H4c.5-1 2-2.5 2-6.5z"/><path d="M10 18a2 2 0 0 0 4 0"/></svg>
-        <span class="profil-notifs-badge" id="profil-notifs-badge" hidden>0</span>
-      </button>
     </div>
     <input type="file" id="profil-photo-fichier" accept="image/*" hidden>
     <input class="profil-pseudo" id="profil-pseudo" type="text" placeholder="Ton pseudo" maxlength="30" autocomplete="off">
@@ -3642,6 +3683,14 @@
     if (l.pays && l.pays.length) {
       h += '<div class="bulle-date">' + l.pays.map(function (c) { return imgDrapeau(c, 16); }).join(' ') + '</div>';
     }
+    if ((l.amis && l.amis.length) || (l.amisManuels && l.amisManuels.length)) {
+      var morceaux = (l.amis || []).map(function (pseudo) {
+        return '<a href="#" class="bulle-ami-lien" data-ami="' + echapper(pseudo) + '">' + echapper(pseudo) + '</a>';
+      }).concat((l.amisManuels || []).map(function (nom) {
+        return '<span class="bulle-ami-manuel">' + echapper(nom) + '</span>';
+      }));
+      h += '<div class="bulle-date">Avec ' + morceaux.join(', ') + '</div>';
+    }
     h += '<div class="bulle-separateur"></div>';
     var idClip = 'clip-pin-' + (compteurFiltresEpingle++);
     h += '<div class="bulle-actions">' +
@@ -3699,6 +3748,16 @@
     document.getElementById('mini-modale-corps').innerHTML = '';
   }
 
+  /* Le profil détaillé d'un ami (visible en cliquant son pseudo) n'existe pas
+     encore — à construire dans une prochaine session. Pour l'instant, on
+     prévient juste que ça arrive plutôt que de laisser un lien mort. */
+  function voirProfilAmi(pseudo) {
+    annoncer('Le profil de ' + pseudo + ' arrivera bientôt.');
+  }
+  document.addEventListener('click', function (e) {
+    var lien = e.target.closest('.bulle-ami-lien');
+    if (lien) { e.preventDefault(); voirProfilAmi(lien.getAttribute('data-ami')); }
+  });
   document.getElementById('mini-modale-fermer').addEventListener('click', fermerMiniModale);
   document.getElementById('mini-voile').addEventListener('click', fermerMiniModale);
 
@@ -3785,14 +3844,18 @@
     if (!NOTIFICATIONS_DEMO.length) {
       h += '<div class="aide">Rien de nouveau pour l\'instant.</div>';
     } else {
-      h += NOTIFICATIONS_DEMO.map(function (n, i) {
-        return '<div class="notif-item">' +
-          '<div class="notif-texte"><strong>' + echapper(n.pseudo) + '</strong> a ajouté une adresse avec vous. Enregistrez cette adresse ?</div>' +
-          '<button type="button" class="bulle-bouton ajouter" data-notif="' + i + '">' +
-          '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
-          'Enregistrer cette adresse</button>' +
-          '</div>';
-      }).join('<div class="bulle-separateur"></div>');
+      h += '<div class="notif-liste">' + NOTIFICATIONS_DEMO.map(function (n, i) {
+        var couleur = TEINTES[i % TEINTES.length];
+        var initiale = echapper((n.pseudo || '?').charAt(0).toUpperCase());
+        return '<button type="button" class="notif-ligne" data-notif="' + i + '">' +
+          '<span class="notif-avatar" style="background:' + couleur + '">' + initiale + '</span>' +
+          '<span class="notif-corps">' +
+          '<span class="notif-ligne-titre">' + echapper(n.pseudo) + '</span>' +
+          '<span class="notif-ligne-texte">a ajouté « ' + echapper(n.lieu.nom) + ' » avec vous</span>' +
+          '</span>' +
+          '<span class="notif-point" aria-hidden="true"></span>' +
+          '</button>';
+      }).join('') + '</div>';
     }
     corps.innerHTML = h;
     ouvrirMiniModale();
@@ -4181,7 +4244,7 @@
   var AMIS_EN_ATTENTE_DEMO = [];
   /* Faux "annuaire" pour la recherche factice — sera remplacé par une vraie
      recherche de comptes une fois en ligne. */
-  var AMIS_CANDIDATS_DEMO = ['Sofia', 'Malik', 'Emma', 'Nathan', 'Chloé', 'Adam', 'Inès', 'Théo'];
+  var AMIS_CANDIDATS_DEMO = ['Sofia', 'Malik', 'Emma', 'Nathan', 'Chloé', 'Adam', 'Inès', 'Théo', 'Justine'];
 
   function dessinerAmis() {
     var zone = document.getElementById('amis-liste');
