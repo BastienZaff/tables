@@ -425,7 +425,7 @@
   .notif-liste { display: flex; flex-direction: column; }
   .notif-ligne {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 10px;
     width: 100%;
     padding: 10px 4px;
@@ -453,9 +453,11 @@
   .notif-ligne-titre { font-family: var(--label); font-weight: 700; font-size: 13.5px; color: var(--texte); }
   .notif-ligne-texte {
     font-family: var(--body); font-size: 12.5px; color: var(--texte-doux);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    white-space: normal; overflow-wrap: break-word; line-height: 1.35;
   }
   .notif-point { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex: none; }
+  .notif-lue { opacity: .62; }
+  .notif-lue .notif-ligne-titre { font-weight: 600; }
 
   .bulle-ami-lien { color: var(--accent); font-weight: 600; text-decoration: none; }
   .bulle-ami-lien:hover { text-decoration: underline; }
@@ -1904,7 +1906,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v123</span>
+        <span class="version" id="version">v124</span>
       </header>
 
       <div class="filtres">
@@ -3820,6 +3822,7 @@
   var NOTIFICATIONS_DEMO = [
     {
       pseudo: 'Camille',
+      lu: false,
       lieu: {
         nom: 'Le Petit Cambodge',
         adresse: '20 Rue Alibert, 75010 Paris',
@@ -3833,7 +3836,7 @@
   function mettreAJourBadgeNotifs() {
     var badge = document.getElementById('profil-notifs-badge');
     if (!badge) return;
-    var n = NOTIFICATIONS_DEMO.length;
+    var n = NOTIFICATIONS_DEMO.filter(function (x) { return !x.lu; }).length;
     badge.textContent = n > 9 ? '9+' : String(n);
     badge.hidden = n === 0;
   }
@@ -3847,13 +3850,13 @@
       h += '<div class="notif-liste">' + NOTIFICATIONS_DEMO.map(function (n, i) {
         var couleur = TEINTES[i % TEINTES.length];
         var initiale = echapper((n.pseudo || '?').charAt(0).toUpperCase());
-        return '<button type="button" class="notif-ligne" data-notif="' + i + '">' +
+        return '<button type="button" class="notif-ligne' + (n.lu ? ' notif-lue' : '') + '" data-notif="' + i + '">' +
           '<span class="notif-avatar" style="background:' + couleur + '">' + initiale + '</span>' +
           '<span class="notif-corps">' +
           '<span class="notif-ligne-titre">' + echapper(n.pseudo) + '</span>' +
           '<span class="notif-ligne-texte">a ajouté « ' + echapper(n.lieu.nom) + ' » avec vous</span>' +
           '</span>' +
-          '<span class="notif-point" aria-hidden="true"></span>' +
+          (n.lu ? '' : '<span class="notif-point" aria-hidden="true"></span>') +
           '</button>';
       }).join('') + '</div>';
     }
@@ -3863,9 +3866,9 @@
       btn.addEventListener('click', function () {
         var i = parseInt(btn.getAttribute('data-notif'), 10);
         var n = NOTIFICATIONS_DEMO[i];
+        n.lu = true;
         fermerMiniModale();
         ajouterDepuisPartageAmi(n);
-        NOTIFICATIONS_DEMO.splice(i, 1);
         mettreAJourBadgeNotifs();
       });
     });
