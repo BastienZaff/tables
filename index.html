@@ -490,6 +490,52 @@
     margin: 22px 0 0;
     padding: 0 22px 26px;
   }
+
+  .ami-avatar-lettre {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 46px;
+    color: #FFFFFF;
+  }
+  .ami-pseudo {
+    display: block;
+    width: 100%;
+    max-width: 260px;
+    margin: 45px auto 0;
+    text-align: center;
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 25px;
+    color: var(--texte);
+    padding: 4px 6px 6px;
+    border-bottom: 1.5px solid rgba(42,17,69,.18);
+  }
+  [data-theme="sombre"] .ami-pseudo { color: #FFFFFF; border-bottom-color: rgba(255,255,255,.3); }
+
+  .ami-ligne {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--ligne);
+  }
+  .ami-ligne:last-child { border-bottom: none; }
+  .ami-ligne .detail { flex: 1; min-width: 0; }
+  .ami-ligne .nom { display: block; font-family: var(--label); font-weight: 700; font-size: 13.5px; color: var(--texte); }
+  .ami-ligne .meta { display: block; font-family: var(--body); font-size: 12px; color: var(--texte-doux); }
+  .ami-ligne .voir {
+    flex: none;
+    font-family: var(--label); font-weight: 600; font-size: 11px;
+    color: var(--accent); background: var(--accent-doux);
+    border: 0; border-radius: 999px; padding: 5px 10px;
+  }
+  .ami-ligne .voir:hover { filter: brightness(.97); }
+
+  .ami-categorie-ligne { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
+  .ami-categorie-ligne .pastille { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+  .ami-categorie-ligne .nom { flex: 1; font-family: var(--body); font-size: 13.5px; color: var(--texte); }
+  .ami-categorie-ligne .nombre { font-family: var(--label); font-weight: 700; font-size: 13px; color: var(--texte-doux); }
+  .ami-vide { font-family: var(--body); font-size: 13.5px; color: var(--texte-doux); padding: 4px 0 10px; }
   .profil-stat {
     flex: 1;
     text-align: center;
@@ -594,6 +640,8 @@
     padding: 6px 2px 10px;
   }
   .amis-item-attente { background: transparent; border: 1.5px dashed var(--ligne-fort); }
+  .amis-item-lien { cursor: pointer; }
+  .amis-item-lien:hover { filter: brightness(.97); }
   .amis-avatar-attente { background: var(--surface-2) !important; color: var(--texte-doux); border: 1.5px dashed var(--ligne-fort); }
   .amis-pseudo small { display: block; font-size: 10.5px; font-weight: 600; color: var(--texte-doux); text-transform: uppercase; letter-spacing: .3px; }
   .profil-accordeon-label { display: flex; align-items: center; }
@@ -1906,7 +1954,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v125</span>
+        <span class="version" id="version">v126</span>
       </header>
 
       <div class="filtres">
@@ -2294,6 +2342,52 @@
       <div class="profil-accordeon-corps" id="accordeon-regions-corps" hidden>
         <div id="profil-regions"></div>
       </div>
+    </div>
+  </div>
+</section>
+
+<section class="volet" id="volet-ami" aria-hidden="true">
+  <div class="profil-bandeau">
+    <div class="volet-entete">
+      <span class="volet-titre" id="ami-titre">Profil</span>
+      <button class="fermer" id="ami-fermer" aria-label="Fermer">×</button>
+    </div>
+
+    <div class="profil-avatar-zone">
+      <span class="profil-avatar ami-avatar-lettre" id="ami-avatar-lettre">?</span>
+    </div>
+    <div class="ami-pseudo" id="ami-pseudo-affiche"></div>
+    <div class="profil-stats" id="ami-stats"></div>
+  </div>
+
+  <div class="volet-corps">
+    <div class="profil-accordeon">
+      <button class="profil-accordeon-entete" id="accordeon-amis-ami-bouton" aria-expanded="false">
+        <span class="profil-accordeon-label">
+          <svg class="profil-accordeon-icone profil-accordeon-icone-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="16.2" cy="8.3" r="3.3" fill="var(--accent-doux)" stroke="var(--accent)" stroke-width="1.2"/>
+            <path d="M10.6 20.2c0-3.8 2.5-6.4 5.6-6.4s5.6 2.6 5.6 6.4" fill="var(--accent-doux)" stroke="var(--accent)" stroke-width="1.2" stroke-linecap="round"/>
+            <circle cx="8.3" cy="8.8" r="3.9" fill="var(--surface)" stroke="var(--accent)" stroke-width="1.6"/>
+            <path d="M2 21c0-4.4 2.8-7.4 6.3-7.4s6.3 3 6.3 7.4" fill="var(--surface)" stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+          <span id="ami-amis-titre">Amis de</span> (<span id="ami-amis-nombre">0</span>)
+        </span>
+        <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="profil-accordeon-corps" id="accordeon-amis-ami-corps" hidden>
+        <div class="amis-liste" id="ami-amis-liste"></div>
+      </div>
+    </div>
+
+    <div class="profil-section-fixe">
+      <div class="profil-sous-titre">Adresses en commun</div>
+      <div id="ami-communes"></div>
+
+      <div class="profil-sous-titre">Ses catégories préférées</div>
+      <div id="ami-categories"></div>
+
+      <div class="profil-sous-titre" id="ami-titre-reco">Ce qu'il/elle recommande</div>
+      <div id="ami-recommandations"></div>
     </div>
   </div>
 </section>
@@ -3750,11 +3844,103 @@
     document.getElementById('mini-modale-corps').innerHTML = '';
   }
 
-  /* Le profil détaillé d'un ami (visible en cliquant son pseudo) n'existe pas
-     encore — à construire dans une prochaine session. Pour l'instant, on
-     prévient juste que ça arrive plutôt que de laisser un lien mort. */
+  function trouverAmiParPseudo(pseudo) {
+    return AMIS_DEMO.filter(function (a) { return a.pseudo === pseudo; })[0];
+  }
+
+  function fermerProfilAmi() {
+    document.getElementById('volet-ami').classList.remove('ouvert');
+    document.getElementById('volet-ami').setAttribute('aria-hidden', 'true');
+    document.getElementById('voile').classList.remove('ouvert');
+  }
+
+  /* Profil (encore factice) d'un ami, ouvert en cliquant son pseudo — voir
+     NOTES-SOCIAL-FACTICE.md pour ce qu'il faudra vraiment brancher. */
+  function ouvrirProfilAmi(pseudo) {
+    var ami = trouverAmiParPseudo(pseudo);
+    if (!ami) { annoncer('Profil introuvable pour le moment.'); return; }
+
+    var indexCouleur = AMIS_DEMO.indexOf(ami);
+    var couleurAmi = TEINTES[indexCouleur % TEINTES.length];
+
+    document.getElementById('ami-titre').textContent = ami.pseudo;
+    document.getElementById('ami-pseudo-affiche').textContent = ami.pseudo;
+    var avatar = document.getElementById('ami-avatar-lettre');
+    avatar.textContent = ami.pseudo.charAt(0).toUpperCase();
+    avatar.style.background = couleurAmi;
+
+    var aTester = ami.adresses - ami.testees;
+    document.getElementById('ami-stats').innerHTML =
+      '<div class="profil-stat"><span class="nombre">' + ami.adresses + '</span><span class="libelle">' + (ami.adresses > 1 ? 'adresses' : 'adresse') + '</span></div>' +
+      '<div class="profil-stat"><span class="nombre">' + ami.testees + '</span><span class="libelle">testées</span></div>' +
+      '<div class="profil-stat"><span class="nombre">' + aTester + '</span><span class="libelle">à tester</span></div>';
+
+    document.getElementById('ami-amis-titre').textContent = 'Amis de ' + ami.pseudo;
+    var listeAmisAmi = ami.amis || [];
+    document.getElementById('ami-amis-nombre').textContent = listeAmisAmi.length;
+    var zoneAmisAmi = document.getElementById('ami-amis-liste');
+    if (!listeAmisAmi.length) {
+      zoneAmisAmi.innerHTML = '<div class="amis-liste-vide">Pas d\'amis à afficher.</div>';
+    } else {
+      zoneAmisAmi.innerHTML = listeAmisAmi.map(function (pseudoAmi, i) {
+        var couleur = TEINTES[i % TEINTES.length];
+        var initiale = echapper(pseudoAmi.charAt(0).toUpperCase());
+        var cliquable = !!trouverAmiParPseudo(pseudoAmi);
+        return '<div class="amis-item' + (cliquable ? ' amis-item-lien' : '') + '"' + (cliquable ? ' data-ouvrir-ami="' + echapper(pseudoAmi) + '"' : '') + '>' +
+          '<span class="amis-avatar" style="background:' + couleur + '">' + initiale + '</span>' +
+          '<span class="amis-pseudo">' + echapper(pseudoAmi) + '</span>' +
+          '</div>';
+      }).join('');
+      zoneAmisAmi.querySelectorAll('[data-ouvrir-ami]').forEach(function (el) {
+        el.addEventListener('click', function () { ouvrirProfilAmi(el.getAttribute('data-ouvrir-ami')); });
+      });
+    }
+
+    var zoneCommunes = document.getElementById('ami-communes');
+    var communes = ami.communes || [];
+    zoneCommunes.innerHTML = !communes.length
+      ? '<div class="ami-vide">Aucune adresse en commun pour l\'instant.</div>'
+      : communes.map(function (l) {
+        return '<div class="ami-ligne"><span class="detail"><span class="nom">' + echapper(l.nom) +
+          '</span><span class="meta">' + echapper(l.adresse || '') + '</span></span></div>';
+      }).join('');
+
+    var zoneCategories = document.getElementById('ami-categories');
+    var topCats = ami.topCategories || [];
+    zoneCategories.innerHTML = !topCats.length
+      ? '<div class="ami-vide">Pas encore assez de données.</div>'
+      : topCats.map(function (tc) {
+        var c = categorie(tc.id);
+        return '<div class="ami-categorie-ligne"><span class="pastille" style="background:' + (c ? c.couleur : '#8A7F9B') +
+          '"></span><span class="nom">' + echapper(c ? c.nom : tc.id) + '</span><span class="nombre">' + tc.count + '</span></div>';
+      }).join('');
+
+    var zoneReco = document.getElementById('ami-recommandations');
+    var recos = ami.recommandations || [];
+    document.getElementById('ami-titre-reco').textContent = 'Ce que ' + ami.pseudo + ' recommande';
+    zoneReco.innerHTML = !recos.length
+      ? '<div class="ami-vide">Rien de recommandé pour l\'instant.</div>'
+      : recos.map(function (l, i) {
+        var c = categorie((l.categories || [])[0]);
+        return '<div class="ami-ligne"><span class="detail"><span class="nom">' + echapper(l.nom) +
+          '</span><span class="meta">' + echapper(c ? c.nom : '') + (l.adresse ? ' · ' + echapper(l.adresse) : '') +
+          '</span></span><button type="button" class="voir" data-voir-reco="' + i + '">Voir l\'adresse</button></div>';
+      }).join('');
+    zoneReco.querySelectorAll('[data-voir-reco]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var i = parseInt(btn.getAttribute('data-voir-reco'), 10);
+        fermerProfilAmi();
+        ajouterDepuisRecommandation(recos[i]);
+      });
+    });
+
+    document.getElementById('volet-ami').classList.add('ouvert');
+    document.getElementById('volet-ami').setAttribute('aria-hidden', 'false');
+    document.getElementById('voile').classList.add('ouvert');
+  }
+
   function voirProfilAmi(pseudo) {
-    annoncer('Le profil de ' + pseudo + ' arrivera bientôt.');
+    ouvrirProfilAmi(pseudo);
   }
   document.addEventListener('click', function (e) {
     var lien = e.target.closest('.bulle-ami-lien');
@@ -4235,11 +4421,48 @@
   /* Données factices en attendant le vrai système de comptes/amis (voir fiche
      de reprise). À remplacer par un vrai appel une fois le compte en ligne. */
   var AMIS_DEMO = [
-    { pseudo: 'Léa' },
-    { pseudo: 'Hugo' },
-    { pseudo: 'Nora' },
-    { pseudo: 'Yanis' },
-    { pseudo: 'Camille' }
+    { pseudo: 'Léa', adresses: 47, testees: 33,
+      amis: ['Camille', 'Nora', 'Théo'],
+      communes: [
+        { nom: 'Le Bouchon Lyonnais', adresse: 'Lyon 69002' }
+      ],
+      topCategories: [{ id: 'restaurant', count: 28 }, { id: 'boulangerie', count: 9 }],
+      recommandations: [
+        { nom: 'Chez Léon', adresse: 'Lyon 69001', categories: ['restaurant'] },
+        { nom: 'Bao Family', adresse: 'Lyon 69003', categories: ['restaurant'] }
+      ] },
+    { pseudo: 'Hugo', adresses: 22, testees: 19,
+      amis: ['Yanis', 'Malik'],
+      communes: [],
+      topCategories: [{ id: 'bar', count: 11 }, { id: 'restaurant', count: 8 }],
+      recommandations: [
+        { nom: 'La Cantine du Marché', adresse: 'Bordeaux 33000', categories: ['restaurant'] }
+      ] },
+    { pseudo: 'Nora', adresses: 61, testees: 40,
+      amis: ['Léa', 'Camille', 'Sofia', 'Emma'],
+      communes: [
+        { nom: 'Le Petit Cambodge', adresse: 'Paris 75010' },
+        { nom: 'Onigiri Bar', adresse: 'Paris 75011' }
+      ],
+      topCategories: [{ id: 'restaurant', count: 30 }, { id: 'fastfood', count: 14 }, { id: 'coffee', count: 6 }],
+      recommandations: [
+        { nom: 'Le Petit Cambodge', adresse: 'Paris 75010', categories: ['restaurant'] },
+        { nom: 'Onigiri Bar', adresse: 'Paris 75011', categories: ['fastfood'] }
+      ] },
+    { pseudo: 'Yanis', adresses: 15, testees: 15,
+      amis: ['Hugo'],
+      communes: [],
+      topCategories: [{ id: 'restaurant', count: 15 }],
+      recommandations: [] },
+    { pseudo: 'Camille', adresses: 34, testees: 21,
+      amis: ['Léa', 'Nora', 'Adam'],
+      communes: [
+        { nom: 'Le Petit Cambodge', adresse: '20 Rue Alibert, 75010 Paris' }
+      ],
+      topCategories: [{ id: 'restaurant', count: 17 }, { id: 'bar', count: 5 }],
+      recommandations: [
+        { nom: 'Le Petit Cambodge', adresse: '20 Rue Alibert, 75010 Paris', categories: ['restaurant'] }
+      ] }
   ];
   /* Invitations envoyées mais pas encore acceptées par l'autre (amitié
      mutuelle : il faut que les deux personnes s'ajoutent). */
@@ -6164,6 +6387,7 @@
     fermerMapstr();
     fermerTri();
     fermerProfil();
+    fermerProfilAmi();
   });
   document.getElementById('btn-enregistrer').addEventListener('click', valider);
   document.getElementById('btn-supprimer').addEventListener('click', supprimer);
@@ -6197,6 +6421,8 @@
       document.getElementById(idCorps).hidden = ouvert;
     });
   }
+  brancherAccordeon('accordeon-amis-ami-bouton', 'accordeon-amis-ami-corps');
+  document.getElementById('ami-fermer').addEventListener('click', fermerProfilAmi);
   brancherAccordeon('accordeon-amis-bouton', 'accordeon-amis-corps');
   brancherAccordeon('accordeon-stats-bouton', 'accordeon-stats-corps');
   brancherAccordeon('accordeon-pays-bouton', 'accordeon-pays-corps');
