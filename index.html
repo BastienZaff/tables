@@ -497,6 +497,57 @@
     font-size: 46px;
     color: #FFFFFF;
   }
+  .ami-voir-carte {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 0 22px 24px;
+    padding: 11px 16px;
+    border-radius: 999px;
+    border: 0;
+    background: var(--surface);
+    color: var(--accent);
+    font-family: var(--label);
+    font-weight: 700;
+    font-size: 13.5px;
+    cursor: pointer;
+    box-shadow: 0 3px 10px rgba(42,17,69,.18);
+  }
+  .ami-voir-carte:hover { filter: brightness(.97); }
+
+  .ami-carte-banniere {
+    position: absolute;
+    top: 14px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 950;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--surface);
+    border-radius: 999px;
+    padding: 8px 8px 8px 16px;
+    box-shadow: 0 4px 14px rgba(42,17,69,.25);
+    font-family: var(--label);
+    font-weight: 700;
+    font-size: 13.5px;
+    color: var(--texte);
+  }
+  .ami-carte-banniere button {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--accent-doux);
+    color: var(--accent);
+    font-family: var(--label);
+    font-weight: 700;
+    font-size: 12.5px;
+    padding: 7px 12px;
+    cursor: pointer;
+  }
+  .ami-carte-banniere button:hover { filter: brightness(.97); }
   .ami-pseudo {
     display: block;
     width: 100%;
@@ -1954,7 +2005,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v130</span>
+        <span class="version" id="version">v132</span>
       </header>
 
       <div class="filtres">
@@ -1993,6 +2044,13 @@
 
   <div class="carte-zone">
     <div id="map"></div>
+    <div class="ami-carte-banniere" id="ami-carte-banniere" hidden>
+      <span id="ami-carte-banniere-texte">Carte de</span>
+      <button type="button" id="ami-carte-retour">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        Mes adresses
+      </button>
+    </div>
     <div class="commandes-carte">
       <button class="commande" id="btn-parametres-carte" title="Paramètres de la carte" aria-label="Afficher les réglages de la carte" aria-expanded="false">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="9" cy="6" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="9" cy="18" r="2"/></svg>
@@ -2360,6 +2418,10 @@
     </div>
     <div class="ami-pseudo" id="ami-pseudo-affiche"></div>
     <div class="profil-stats" id="ami-stats"></div>
+    <button type="button" class="ami-voir-carte" id="ami-voir-carte-bouton">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 20l-6-2V4l6 2 6-2 6 2v14l-6-2-6 2z"/><path d="M9 4v14M15 6v14"/></svg>
+      <span id="ami-voir-carte-texte">Voir la carte</span>
+    </button>
   </div>
 
   <div class="volet-corps">
@@ -3517,6 +3579,7 @@
 
     coucheEpingles = L.layerGroup().addTo(carte);
     couchePosition = L.layerGroup().addTo(carte);
+    coucheAmi = L.layerGroup();
 
     carte.on('click', function (e) {
       if (!modePointage) return;
@@ -3866,9 +3929,80 @@
   }
 
   var pileNavigationAmi = [];
+  var amiProfilCourant = null;
 
   function trouverAmiParPseudo(pseudo) {
     return AMIS_DEMO.filter(function (a) { return a.pseudo === pseudo; })[0];
+  }
+
+  var coucheAmi = null;
+  var carteAmiActive = null;
+
+  function quitterCarteAmi() {
+    if (!carteAmiActive) return;
+    carteAmiActive = null;
+    if (coucheAmi) coucheAmi.clearLayers();
+    if (carte && carte.hasLayer(coucheAmi)) carte.removeLayer(coucheAmi);
+    if (carte && coucheEpingles && !carte.hasLayer(coucheEpingles)) coucheEpingles.addTo(carte);
+    var banniere = document.getElementById('ami-carte-banniere');
+    if (banniere) banniere.hidden = true;
+  }
+
+  /* Affiche uniquement les adresses (factices) d'un ami sur la carte, à la
+     place des siennes — voir NOTES-SOCIAL-FACTICE.md : en vrai, il faudra
+     charger ses adresses selon ce qu'il partage. */
+  function voirCarteAmi(pseudo) {
+    var ami = trouverAmiParPseudo(pseudo);
+    if (!ami) { annoncer('Profil introuvable pour le moment.'); return; }
+    var liste = (ami.adressesListe || []).filter(function (l) {
+      return typeof l.lat === 'number' && typeof l.lng === 'number';
+    });
+    if (!liste.length) { annoncer(ami.pseudo + " n'a pas encore d'adresse à montrer."); return; }
+
+    fermerProfilAmi();
+    fermerProfil();
+    fermerVolet();
+    fermerCats();
+    fermerTri();
+    fermerImport();
+    fermerMapstr();
+    document.getElementById('app').setAttribute('data-vue', 'carte');
+
+    carteAmiActive = ami;
+    if (carte.hasLayer(coucheEpingles)) carte.removeLayer(coucheEpingles);
+    coucheAmi.clearLayers();
+
+    var indexCouleur = AMIS_DEMO.indexOf(ami);
+    var couleurAmi = TEINTES[indexCouleur % TEINTES.length];
+    var bornes = [];
+
+    liste.forEach(function (l) {
+      var c = categorie((l.categories || [])[0]);
+      var icone = L.divIcon({
+        className: '',
+        html: formeEpingle(couleurAmi, true, c.icone || c.id),
+        iconSize: [34, 42],
+        iconAnchor: [17, 42],
+        popupAnchor: [0, -36]
+      });
+      var m = L.marker([l.lat, l.lng], { icon: icone, title: l.nom });
+      m.bindPopup(
+        '<div class="bulle-nom">' + echapper(l.nom) + '</div>' +
+        '<div class="bulle-date">' + echapper(l.adresse || '') + '</div>' +
+        '<div class="bulle-date">Ajoutée par ' + echapper(ami.pseudo) + '</div>',
+        { closeButton: true, minWidth: 190 }
+      );
+      m.addTo(coucheAmi);
+      bornes.push([l.lat, l.lng]);
+    });
+
+    coucheAmi.addTo(carte);
+    if (bornes.length > 1) carte.fitBounds(bornes, { padding: [50, 50] });
+    else carte.setView(bornes[0], 15);
+
+    var banniere = document.getElementById('ami-carte-banniere');
+    document.getElementById('ami-carte-banniere-texte').textContent = 'Carte de ' + ami.pseudo;
+    banniere.hidden = false;
   }
 
   function fermerProfilAmi() {
@@ -3895,6 +4029,7 @@
     if (!ami) { annoncer('Profil introuvable pour le moment.'); return; }
 
     if (depuis) pileNavigationAmi.push(depuis);
+    amiProfilCourant = ami;
 
     fermerVolet();
     fermerProfil();
@@ -3908,6 +4043,7 @@
 
     document.getElementById('ami-titre').textContent = ami.pseudo;
     document.getElementById('ami-pseudo-affiche').textContent = ami.pseudo;
+    document.getElementById('ami-voir-carte-texte').textContent = 'Voir la carte de ' + ami.pseudo;
     var avatar = document.getElementById('ami-avatar-lettre');
     avatar.textContent = ami.pseudo.charAt(0).toUpperCase();
     avatar.style.background = couleurAmi;
@@ -4479,6 +4615,12 @@
       ],
       topCategories: [{ id: 'restaurant', count: 28 }, { id: 'boulangerie', count: 9 }],
       topPays: [{ code: 'FR', count: 22 }, { code: 'IT', count: 6 }, { code: 'JP', count: 3 }],
+      adressesListe: [
+        { nom: 'Chez Léon', adresse: 'Lyon 69001', categories: ['restaurant'], lat: 45.7676, lng: 4.8348 },
+        { nom: 'Bao Family', adresse: 'Lyon 69003', categories: ['restaurant'], lat: 45.7550, lng: 4.8520 },
+        { nom: 'Le Bouchon Lyonnais', adresse: 'Lyon 69002', categories: ['restaurant'], lat: 45.7530, lng: 4.8280 },
+        { nom: 'Boulangerie des Terreaux', adresse: 'Lyon 69001', categories: ['boulangerie'], lat: 45.7680, lng: 4.8330 }
+      ],
       recommandations: [
         { nom: 'Chez Léon', adresse: 'Lyon 69001', categories: ['restaurant'] },
         { nom: 'Bao Family', adresse: 'Lyon 69003', categories: ['restaurant'] }
@@ -4488,6 +4630,10 @@
       communes: [],
       topCategories: [{ id: 'bar', count: 11 }, { id: 'restaurant', count: 8 }],
       topPays: [{ code: 'FR', count: 15 }, { code: 'ES', count: 4 }],
+      adressesListe: [
+        { nom: 'La Cantine du Marché', adresse: 'Bordeaux 33000', categories: ['restaurant'], lat: 44.8410, lng: -0.5750 },
+        { nom: 'Le Petit Bar', adresse: 'Bordeaux 33000', categories: ['bar'], lat: 44.8378, lng: -0.5792 }
+      ],
       recommandations: [
         { nom: 'La Cantine du Marché', adresse: 'Bordeaux 33000', categories: ['restaurant'] }
       ] },
@@ -4499,6 +4645,11 @@
       ],
       topCategories: [{ id: 'restaurant', count: 30 }, { id: 'fastfood', count: 14 }, { id: 'coffee', count: 6 }],
       topPays: [{ code: 'FR', count: 24 }, { code: 'KH', count: 5 }, { code: 'JP', count: 5 }, { code: 'TH', count: 6 }],
+      adressesListe: [
+        { nom: 'Le Petit Cambodge', adresse: 'Paris 75010', categories: ['restaurant'], lat: 48.8712, lng: 2.3626 },
+        { nom: 'Onigiri Bar', adresse: 'Paris 75011', categories: ['fastfood'], lat: 48.8580, lng: 2.3785 },
+        { nom: 'Café des Deux Moulins', adresse: 'Paris 75018', categories: ['coffee'], lat: 48.8846, lng: 2.3325 }
+      ],
       recommandations: [
         { nom: 'Le Petit Cambodge', adresse: 'Paris 75010', categories: ['restaurant'] },
         { nom: 'Onigiri Bar', adresse: 'Paris 75011', categories: ['fastfood'] }
@@ -4508,6 +4659,11 @@
       communes: [],
       topCategories: [{ id: 'restaurant', count: 15 }],
       topPays: [{ code: 'FR', count: 15 }],
+      adressesListe: [
+        { nom: 'Chez Fonfon', adresse: 'Marseille 13007', categories: ['restaurant'], lat: 43.2820, lng: 5.3540 },
+        { nom: 'Le Bar de la Marine', adresse: 'Marseille 13002', categories: ['bar'], lat: 43.2965, lng: 5.3698 },
+        { nom: 'Boulangerie du Panier', adresse: 'Marseille 13002', categories: ['boulangerie'], lat: 43.2990, lng: 5.3660 }
+      ],
       recommandations: [] },
     { pseudo: 'Camille', adresses: 34, testees: 21,
       amis: ['Léa', 'Nora', 'Adam'],
@@ -4516,6 +4672,10 @@
       ],
       topCategories: [{ id: 'restaurant', count: 17 }, { id: 'bar', count: 5 }],
       topPays: [{ code: 'FR', count: 17 }, { code: 'KH', count: 3 }, { code: 'LB', count: 2 }],
+      adressesListe: [
+        { nom: 'Le Petit Cambodge', adresse: '20 Rue Alibert, 75010 Paris', categories: ['restaurant'], lat: 48.8712, lng: 2.3626 },
+        { nom: 'Bar à Vins Camille', adresse: 'Paris 75011', categories: ['bar'], lat: 48.8580, lng: 2.3810 }
+      ],
       recommandations: [
         { nom: 'Le Petit Cambodge', adresse: '20 Rue Alibert, 75010 Paris', categories: ['restaurant'] }
       ] }
@@ -6490,6 +6650,10 @@
   brancherAccordeon('accordeon-stats-ami-bouton', 'accordeon-stats-ami-corps');
   brancherAccordeon('accordeon-monde-ami-bouton', 'accordeon-monde-ami-corps');
   document.getElementById('ami-retour').addEventListener('click', retourProfilAmi);
+  document.getElementById('ami-voir-carte-bouton').addEventListener('click', function () {
+    if (amiProfilCourant) voirCarteAmi(amiProfilCourant.pseudo);
+  });
+  document.getElementById('ami-carte-retour').addEventListener('click', quitterCarteAmi);
   brancherAccordeon('accordeon-amis-bouton', 'accordeon-amis-corps');
   brancherAccordeon('accordeon-stats-bouton', 'accordeon-stats-corps');
   brancherAccordeon('accordeon-pays-bouton', 'accordeon-pays-corps');
