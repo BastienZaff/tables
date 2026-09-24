@@ -1954,7 +1954,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v126</span>
+        <span class="version" id="version">v128</span>
       </header>
 
       <div class="filtres">
@@ -3860,6 +3860,13 @@
     var ami = trouverAmiParPseudo(pseudo);
     if (!ami) { annoncer('Profil introuvable pour le moment.'); return; }
 
+    fermerVolet();
+    fermerProfil();
+    fermerCats();
+    fermerTri();
+    fermerImport();
+    fermerMapstr();
+
     var indexCouleur = AMIS_DEMO.indexOf(ami);
     var couleurAmi = TEINTES[indexCouleur % TEINTES.length];
 
@@ -4480,7 +4487,7 @@
     var html = AMIS_DEMO.map(function (ami, i) {
       var couleur = TEINTES[i % TEINTES.length];
       var initiale = echapper((ami.pseudo || '?').charAt(0).toUpperCase());
-      return '<div class="amis-item">' +
+      return '<div class="amis-item amis-item-lien" data-ouvrir-ami="' + echapper(ami.pseudo) + '">' +
         '<span class="amis-avatar" style="background:' + couleur + '">' + initiale + '</span>' +
         '<span class="amis-pseudo">' + echapper(ami.pseudo) + '</span>' +
         '</div>';
@@ -4497,6 +4504,9 @@
       return;
     }
     zone.innerHTML = html;
+    zone.querySelectorAll('[data-ouvrir-ami]').forEach(function (el) {
+      el.addEventListener('click', function () { ouvrirProfilAmi(el.getAttribute('data-ouvrir-ami')); });
+    });
   }
 
   function afficherPropositionsAmi(texte) {
@@ -5677,6 +5687,12 @@
   }
 
   function ouvrirVolet() {
+    fermerProfil();
+    fermerProfilAmi();
+    fermerCats();
+    fermerTri();
+    fermerImport();
+    fermerMapstr();
     document.getElementById('volet').classList.add('ouvert');
     document.getElementById('volet').setAttribute('aria-hidden', 'false');
     document.getElementById('voile').classList.add('ouvert');
