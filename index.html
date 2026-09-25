@@ -533,6 +533,7 @@
     font-size: 13.5px;
     color: var(--texte);
   }
+  .ami-carte-banniere[hidden] { display: none; }
   .ami-carte-banniere-avatar {
     width: 26px; height: 26px;
     border-radius: 50%;
@@ -1188,6 +1189,7 @@
     background: var(--accent-doux);
     font-weight: 600;
   }
+  .etiquette.ami-teste { background: var(--accent); color: #FFFFFF; font-weight: 600; }
 
   /* signature : la note en fourchettes */
   .fourchettes { display: inline-flex; gap: 3px; align-items: center; }
@@ -2018,7 +2020,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v133</span>
+        <span class="version" id="version">v134</span>
       </header>
 
       <div class="filtres">
@@ -3935,12 +3937,16 @@
     } else {
       blocCats = cats.map(function (cc) { return iconeCategorieMini(cc); }).join('');
     }
-    h += '<div class="bulle-ligne-note"><span class="bulle-cats">' + blocCats + '</span></div>';
+    var etiquetteEtat = l.teste
+      ? '<span class="etiquette ami-teste">Testé par ' + echapper(ami.pseudo) + '</span>'
+      : '<span class="etiquette a-tester">À tester par ' + echapper(ami.pseudo) + '</span>';
+    h += '<div class="bulle-ligne-note">' + etiquetteEtat +
+         '<span class="bulle-separateur-v"></span>' +
+         '<span class="bulle-cats">' + blocCats + '</span></div>';
     if (l.commentaire) h += '<div class="bulle-mot">' + echapper(l.commentaire) + '</div>';
     if (l.pays && l.pays.length) {
       h += '<div class="bulle-date">' + l.pays.map(function (cc) { return imgDrapeau(cc, 16); }).join(' ') + '</div>';
     }
-    h += '<div class="bulle-date">Ajoutée par <a href="#" class="bulle-ami-lien" data-ami="' + echapper(ami.pseudo) + '">' + echapper(ami.pseudo) + '</a></div>';
     h += '<div class="bulle-separateur"></div>';
     var idClip = 'clip-pin-' + (compteurFiltresEpingle++);
     h += '<div class="bulle-actions">' +
@@ -4067,7 +4073,7 @@
       var c = categorie((l.categories || [])[0]);
       var icone = L.divIcon({
         className: '',
-        html: formeEpingle(couleurAmi, true, c.icone || c.id),
+        html: formeEpingle(couleurAmi, !!l.teste, c.icone || c.id),
         iconSize: [34, 42],
         iconAnchor: [17, 42],
         popupAnchor: [0, -36]
@@ -4698,10 +4704,10 @@
       topCategories: [{ id: 'restaurant', count: 28 }, { id: 'boulangerie', count: 9 }],
       topPays: [{ code: 'FR', count: 22 }, { code: 'IT', count: 6 }, { code: 'JP', count: 3 }],
       adressesListe: [
-        { nom: 'Chez Léon', adresse: 'Lyon 69001', categories: ['restaurant'], lat: 45.7676, lng: 4.8348 },
-        { nom: 'Bao Family', adresse: 'Lyon 69003', categories: ['restaurant'], lat: 45.7550, lng: 4.8520 },
-        { nom: 'Le Bouchon Lyonnais', adresse: 'Lyon 69002', categories: ['restaurant'], lat: 45.7530, lng: 4.8280 },
-        { nom: 'Boulangerie des Terreaux', adresse: 'Lyon 69001', categories: ['boulangerie'], lat: 45.7680, lng: 4.8330 }
+        { nom: 'Chez Léon', adresse: 'Lyon 69001', categories: ['restaurant'], lat: 45.7676, lng: 4.8348, teste: true },
+        { nom: 'Bao Family', adresse: 'Lyon 69003', categories: ['restaurant'], lat: 45.7550, lng: 4.8520, teste: false },
+        { nom: 'Le Bouchon Lyonnais', adresse: 'Lyon 69002', categories: ['restaurant'], lat: 45.7530, lng: 4.8280, teste: true },
+        { nom: 'Boulangerie des Terreaux', adresse: 'Lyon 69001', categories: ['boulangerie'], lat: 45.7680, lng: 4.8330, teste: false }
       ],
       recommandations: [
         { nom: 'Chez Léon', adresse: 'Lyon 69001', categories: ['restaurant'] },
@@ -4713,8 +4719,8 @@
       topCategories: [{ id: 'bar', count: 11 }, { id: 'restaurant', count: 8 }],
       topPays: [{ code: 'FR', count: 15 }, { code: 'ES', count: 4 }],
       adressesListe: [
-        { nom: 'La Cantine du Marché', adresse: 'Bordeaux 33000', categories: ['restaurant'], lat: 44.8410, lng: -0.5750 },
-        { nom: 'Le Petit Bar', adresse: 'Bordeaux 33000', categories: ['bar'], lat: 44.8378, lng: -0.5792 }
+        { nom: 'La Cantine du Marché', adresse: 'Bordeaux 33000', categories: ['restaurant'], lat: 44.8410, lng: -0.5750, teste: true },
+        { nom: 'Le Petit Bar', adresse: 'Bordeaux 33000', categories: ['bar'], lat: 44.8378, lng: -0.5792, teste: false }
       ],
       recommandations: [
         { nom: 'La Cantine du Marché', adresse: 'Bordeaux 33000', categories: ['restaurant'] }
@@ -4728,9 +4734,9 @@
       topCategories: [{ id: 'restaurant', count: 30 }, { id: 'fastfood', count: 14 }, { id: 'coffee', count: 6 }],
       topPays: [{ code: 'FR', count: 24 }, { code: 'KH', count: 5 }, { code: 'JP', count: 5 }, { code: 'TH', count: 6 }],
       adressesListe: [
-        { nom: 'Le Petit Cambodge', adresse: 'Paris 75010', categories: ['restaurant'], lat: 48.8712, lng: 2.3626 },
-        { nom: 'Onigiri Bar', adresse: 'Paris 75011', categories: ['fastfood'], lat: 48.8580, lng: 2.3785 },
-        { nom: 'Café des Deux Moulins', adresse: 'Paris 75018', categories: ['coffee'], lat: 48.8846, lng: 2.3325 }
+        { nom: 'Le Petit Cambodge', adresse: 'Paris 75010', categories: ['restaurant'], lat: 48.8712, lng: 2.3626, teste: true },
+        { nom: 'Onigiri Bar', adresse: 'Paris 75011', categories: ['fastfood'], lat: 48.8580, lng: 2.3785, teste: false },
+        { nom: 'Café des Deux Moulins', adresse: 'Paris 75018', categories: ['coffee'], lat: 48.8846, lng: 2.3325, teste: true }
       ],
       recommandations: [
         { nom: 'Le Petit Cambodge', adresse: 'Paris 75010', categories: ['restaurant'] },
@@ -4742,9 +4748,9 @@
       topCategories: [{ id: 'restaurant', count: 15 }],
       topPays: [{ code: 'FR', count: 15 }],
       adressesListe: [
-        { nom: 'Chez Fonfon', adresse: 'Marseille 13007', categories: ['restaurant'], lat: 43.2820, lng: 5.3540 },
-        { nom: 'Le Bar de la Marine', adresse: 'Marseille 13002', categories: ['bar'], lat: 43.2965, lng: 5.3698 },
-        { nom: 'Boulangerie du Panier', adresse: 'Marseille 13002', categories: ['boulangerie'], lat: 43.2990, lng: 5.3660 }
+        { nom: 'Chez Fonfon', adresse: 'Marseille 13007', categories: ['restaurant'], lat: 43.2820, lng: 5.3540, teste: false },
+        { nom: 'Le Bar de la Marine', adresse: 'Marseille 13002', categories: ['bar'], lat: 43.2965, lng: 5.3698, teste: true },
+        { nom: 'Boulangerie du Panier', adresse: 'Marseille 13002', categories: ['boulangerie'], lat: 43.2990, lng: 5.3660, teste: false }
       ],
       recommandations: [] },
     { pseudo: 'Camille', adresses: 34, testees: 21,
@@ -4755,8 +4761,8 @@
       topCategories: [{ id: 'restaurant', count: 17 }, { id: 'bar', count: 5 }],
       topPays: [{ code: 'FR', count: 17 }, { code: 'KH', count: 3 }, { code: 'LB', count: 2 }],
       adressesListe: [
-        { nom: 'Le Petit Cambodge', adresse: '20 Rue Alibert, 75010 Paris', categories: ['restaurant'], lat: 48.8712, lng: 2.3626 },
-        { nom: 'Bar à Vins Camille', adresse: 'Paris 75011', categories: ['bar'], lat: 48.8580, lng: 2.3810 }
+        { nom: 'Le Petit Cambodge', adresse: '20 Rue Alibert, 75010 Paris', categories: ['restaurant'], lat: 48.8712, lng: 2.3626, teste: true },
+        { nom: 'Bar à Vins Camille', adresse: 'Paris 75011', categories: ['bar'], lat: 48.8580, lng: 2.3810, teste: false }
       ],
       recommandations: [
         { nom: 'Le Petit Cambodge', adresse: '20 Rue Alibert, 75010 Paris', categories: ['restaurant'] }
