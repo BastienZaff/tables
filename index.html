@@ -533,6 +533,19 @@
     font-size: 13.5px;
     color: var(--texte);
   }
+  .ami-carte-banniere-avatar {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    flex: none;
+    display: grid;
+    place-items: center;
+    color: #FFFFFF;
+    font-family: var(--label);
+    font-weight: 700;
+    font-size: 11px;
+    overflow: hidden;
+  }
+  .ami-carte-banniere-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .ami-carte-banniere button {
     display: flex;
     align-items: center;
@@ -2005,7 +2018,7 @@
           </button>
         </div>
         <img class="logo" src="logo.png" alt="Dévoreur">
-        <span class="version" id="version">v132</span>
+        <span class="version" id="version">v133</span>
       </header>
 
       <div class="filtres">
@@ -2045,6 +2058,7 @@
   <div class="carte-zone">
     <div id="map"></div>
     <div class="ami-carte-banniere" id="ami-carte-banniere" hidden>
+      <span class="ami-carte-banniere-avatar" id="ami-carte-banniere-avatar"></span>
       <span id="ami-carte-banniere-texte">Carte de</span>
       <button type="button" id="ami-carte-retour">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
@@ -3898,6 +3912,70 @@
     if (b) { fermerMiniModale(); modifier(b.getAttribute('data-modifier')); }
   });
 
+  /* Même rendu riche que contenuBulle() pour une adresse appartenant à un
+     ami (carte factice, voir NOTES-SOCIAL-FACTICE.md) : catégories, commentaire,
+     pays, mais pas de note (ce n'est pas mon avis) et « Ajouter » au lieu de
+     « Modifier », puisque ce n'est pas mon adresse. */
+  function contenuBulleAmi(l, ami, indice) {
+    var requete = encodeURIComponent(l.nom + ' ' + (l.adresse || ''));
+    var lien = 'https://www.google.com/maps/search/?api=1&query=' + requete;
+    var c = categorie((l.categories || [])[0]);
+
+    var h = '<div class="bulle-entete">' +
+            '<svg class="bulle-puce" width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">' +
+            iconeCategorieSvg(c.couleur, c.icone || c.id, 0, 0, 20) +
+            '</svg>' +
+            '<span class="bulle-nom">' + echapper(l.nom) + '</span></div>';
+    if (l.adresse) h += '<div class="bulle-adr">' + echapper(formaterAdresseAffichage(l.adresse)) + '</div>';
+
+    var cats = (l.categories && l.categories.length ? l.categories : ['autre']).map(categorie);
+    var blocCats;
+    if (cats.length === 1) {
+      blocCats = iconeCategorieMini(cats[0]) + '<span class="bulle-cat-nom">' + echapper(cats[0].nom) + '</span>';
+    } else {
+      blocCats = cats.map(function (cc) { return iconeCategorieMini(cc); }).join('');
+    }
+    h += '<div class="bulle-ligne-note"><span class="bulle-cats">' + blocCats + '</span></div>';
+    if (l.commentaire) h += '<div class="bulle-mot">' + echapper(l.commentaire) + '</div>';
+    if (l.pays && l.pays.length) {
+      h += '<div class="bulle-date">' + l.pays.map(function (cc) { return imgDrapeau(cc, 16); }).join(' ') + '</div>';
+    }
+    h += '<div class="bulle-date">Ajoutée par <a href="#" class="bulle-ami-lien" data-ami="' + echapper(ami.pseudo) + '">' + echapper(ami.pseudo) + '</a></div>';
+    h += '<div class="bulle-separateur"></div>';
+    var idClip = 'clip-pin-' + (compteurFiltresEpingle++);
+    h += '<div class="bulle-actions">' +
+         '<a class="bulle-bouton maps" href="' + lien + '" target="_blank" rel="noopener">' +
+         '<svg width="15" height="15" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' +
+         '<defs><clipPath id="' + idClip + '"><path d="M12 2C7.6 2 4 5.6 4 10c0 5.6 7 11.5 7.3 11.7a1 1 0 0 0 1.4 0C13 21.5 20 15.6 20 10c0-4.4-3.6-8-8-8z"/></clipPath></defs>' +
+         '<g clip-path="url(#' + idClip + ')">' +
+         '<rect x="4" y="2" width="16" height="7" fill="#EA4335"/>' +
+         '<rect x="4" y="9" width="16" height="4" fill="#FBBC05"/>' +
+         '<rect x="4" y="13" width="16" height="4" fill="#34A853"/>' +
+         '<rect x="4" y="17" width="16" height="6" fill="#4285F4"/>' +
+         '</g>' +
+         '<circle cx="12" cy="10" r="3.3" fill="#FFFFFF"/>' +
+         '</svg>' +
+         'Google Maps</a>' +
+         '<button class="bulle-bouton ajouter" data-ajouter-ami-lieu="' + indice + '">' +
+         '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
+         'Ajouter</button>' +
+         '</div>';
+    return h;
+  }
+
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-ajouter-ami-lieu]');
+    if (!b || !carteAmiActive || !carteAmiActive._listeAffichee) return;
+    var l = carteAmiActive._listeAffichee[parseInt(b.getAttribute('data-ajouter-ami-lieu'), 10)];
+    var ami = carteAmiActive;
+    if (!l) return;
+    fermerMiniModale();
+    quitterCarteAmi();
+    ajouterDepuisRecommandation(l);
+    brouillon.amis = [ami.pseudo];
+    remplirVolet();
+  });
+
   /* Chaque continent (dans le tour du monde) s'ouvre/se ferme individuellement
      au clic. La liste étant reconstruite à chaque rendu, on délègue l'écoute
      sur le conteneur plutôt que sur chaque bouton. */
@@ -3974,9 +4052,18 @@
 
     var indexCouleur = AMIS_DEMO.indexOf(ami);
     var couleurAmi = TEINTES[indexCouleur % TEINTES.length];
+    var avatarBanniere = document.getElementById('ami-carte-banniere-avatar');
+    if (ami.photo) {
+      avatarBanniere.style.background = 'transparent';
+      avatarBanniere.innerHTML = '<img src="' + echapper(ami.photo) + '" alt="">';
+    } else {
+      avatarBanniere.style.background = couleurAmi;
+      avatarBanniere.innerHTML = echapper((ami.pseudo || '?').charAt(0).toUpperCase());
+    }
     var bornes = [];
 
-    liste.forEach(function (l) {
+    carteAmiActive._listeAffichee = liste;
+    liste.forEach(function (l, i) {
       var c = categorie((l.categories || [])[0]);
       var icone = L.divIcon({
         className: '',
@@ -3986,12 +4073,7 @@
         popupAnchor: [0, -36]
       });
       var m = L.marker([l.lat, l.lng], { icon: icone, title: l.nom });
-      m.bindPopup(
-        '<div class="bulle-nom">' + echapper(l.nom) + '</div>' +
-        '<div class="bulle-date">' + echapper(l.adresse || '') + '</div>' +
-        '<div class="bulle-date">Ajoutée par ' + echapper(ami.pseudo) + '</div>',
-        { closeButton: true, minWidth: 190 }
-      );
+      m.bindPopup(contenuBulleAmi(l, ami, i), { closeButton: true, minWidth: 210 });
       m.addTo(coucheAmi);
       bornes.push([l.lat, l.lng]);
     });
